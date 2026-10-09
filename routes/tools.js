@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { requireAuth, requireCredits } = require('../middleware/auth');
 const { getClient } = require('../src/anthropic');
-const { deductCredits, getCost } = require('../src/credits');
 
 const TOOL_CONFIGS = {
   write: {
@@ -56,15 +54,10 @@ const TOOL_CONFIGS = {
   },
 };
 
-router.post('/:tool', requireAuth, async (req, res) => {
+router.post('/:tool', async (req, res) => {
   const { tool } = req.params;
   if (!TOOL_CONFIGS[tool]) {
     return res.status(404).json({ error: `Tool "${tool}" not found`, available: Object.keys(TOOL_CONFIGS) });
-  }
-
-  const cost = getCost(tool);
-  if ((req.user.profile.credits || 0) < cost) {
-    return res.status(402).json({ error: 'Insufficient credits', credits_available: req.user.profile.credits, credits_required: cost });
   }
 
   try {
@@ -90,13 +83,8 @@ router.post('/:tool', requireAuth, async (req, res) => {
     });
 
     const text = response.content?.[0]?.text || '';
-    await deductCredits(req.user.id, tool, response.usage?.input_tokens, response.usage?.output_tokens);
 
-    res.json({
-      success: true, tool, text,
-      credits_used: cost,
-      credits_remaining: req.user.profile.credits - cost,
-    });
+    res.json({ success: true, tool, text });
   } catch (err) {
     if (!err.status) return res.status(400).json({ error: err.message });
     console.error(`[Tool:${tool}]`, err.message);

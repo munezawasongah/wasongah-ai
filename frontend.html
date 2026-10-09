@@ -189,159 +189,59 @@ select option{background:var(--surface2)}
 </head>
 <body>
 
-<!-- ── AUTH SCREEN ──────────────────────────── -->
-<div class="auth-screen" id="authScreen">
-  <div style="position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.025) 1px,transparent 1px);background-size:40px 40px"></div>
-  <div class="auth-card">
-    <div class="auth-logo">Wasongah<em>AI</em></div>
-    <div class="auth-tagline">Your intelligent AI workspace</div>
-
-    <div class="auth-tabs">
-      <button class="auth-tab active" onclick="switchAuthTab('login',this)">Sign In</button>
-      <button class="auth-tab" onclick="switchAuthTab('signup',this)">Create Account</button>
-    </div>
-
-    <div id="authMsg" class="auth-msg"></div>
-
-    <!-- LOGIN -->
-    <div id="loginForm">
-      <div class="auth-field"><label>Email</label><input type="email" id="loginEmail" placeholder="you@example.com" /></div>
-      <div class="auth-field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" /></div>
-      <span class="forgot-link" onclick="showForgot()">Forgot password?</span>
-      <button class="auth-btn" id="loginBtn" onclick="doLogin()">Sign In →</button>
-    </div>
-
-    <!-- SIGNUP -->
-    <div id="signupForm" style="display:none">
-      <div class="auth-field"><label>Full Name</label><input type="text" id="signupName" placeholder="Evans Okoth" /></div>
-      <div class="auth-field"><label>Email</label><input type="email" id="signupEmail" placeholder="you@example.com" /></div>
-      <div class="auth-field"><label>Password</label><input type="password" id="signupPassword" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')doSignup()" /></div>
-      <button class="auth-btn" id="signupBtn" onclick="doSignup()">Create Account →</button>
-      <div class="auth-free-badge">🎁 Start with 20 free credits — no card required</div>
-    </div>
-
-    <!-- FORGOT -->
-    <div id="forgotForm" style="display:none">
-      <div class="auth-field"><label>Email Address</label><input type="email" id="forgotEmail" placeholder="you@example.com" /></div>
-      <button class="auth-btn" onclick="doForgot()">Send Reset Link →</button>
-      <div class="auth-divider"><span style="cursor:pointer;color:var(--cyan)" onclick="showForgot(false)">← Back to sign in</span></div>
-    </div>
-  </div>
-</div>
-
-<!-- ── BUY CREDITS MODAL ─────────────────────── -->
-<div class="modal-overlay hidden" id="creditsModal">
-  <div class="modal" style="position:relative">
-    <button class="modal-close" onclick="closeCreditsModal()">✕ Close</button>
-    <div class="modal-title">⚡ Buy Credits</div>
-    <div class="modal-sub" id="creditsModalSub">Choose a pack and power up your workspace.</div>
-
-    <div class="packages-grid" id="packagesGrid">
-      <div style="color:var(--muted2);font-size:13px;padding:1rem">Loading packages...</div>
-    </div>
-
-    <div class="pay-tabs">
-      <div class="pay-tab active" onclick="switchPayTab('mpesa',this)">📱 M-Pesa (KES)</div>
-      <div class="pay-tab" onclick="switchPayTab('stripe',this)">💳 Card (USD)</div>
-    </div>
-
-    <div class="pay-panel active" id="mpesaPanel">
-      <div class="pay-field"><label>M-Pesa Phone Number</label>
-        <input type="tel" id="mpesaPhone" placeholder="0712 345 678" />
-      </div>
-      <button class="pay-btn mpesa" id="mpesaPayBtn" onclick="initMpesa()">Pay with M-Pesa →</button>
-      <div class="payment-status" id="mpesaStatus"></div>
-    </div>
-
-    <div class="pay-panel" id="stripePanel">
-      <p style="font-size:13px;color:var(--muted2);margin-bottom:1rem;line-height:1.6">You'll be redirected to Stripe's secure checkout to pay by card. Supports Visa, Mastercard, and more.</p>
-      <button class="pay-btn stripe" id="stripePayBtn" onclick="initStripe()">Pay with Card →</button>
-    </div>
-  </div>
-</div>
-
 <!-- ── APP SHELL ────────────────────────────── -->
-<header id="appHeader" style="display:none">
+<header id="appHeader">
   <div class="logo">Wasongah<em>AI</em></div>
   <div class="header-right">
-    <div class="credit-badge" onclick="openCreditsModal()" title="Buy more credits">
-      <span class="credit-icon">⚡</span>
-      <span class="credit-count" id="headerCredits">0</span>
-      <span style="color:var(--muted);font-size:10px">credits</span>
-    </div>
-    <div style="position:relative">
-      <div class="user-menu-btn" id="userMenuBtn" onclick="toggleUserMenu()">
-        <span id="userInitial">?</span>
-      </div>
-      <div class="user-dropdown" id="userDropdown">
-        <div class="user-dropdown-name">
-          <strong id="ddName">Loading...</strong>
-          <span id="ddEmail" style="font-size:11px"></span>
-        </div>
-        <button class="dditem" onclick="loadTool('history')">📋 Usage History</button>
-        <button class="dditem" onclick="openCreditsModal()">⚡ Buy Credits</button>
-        <button class="dditem danger" onclick="doLogout()">🚪 Sign Out</button>
-      </div>
-    </div>
   </div>
 </header>
 
-<div class="shell" id="appShell" style="display:none">
+<div class="shell" id="appShell">
   <nav class="sidebar">
     <div class="sidebar-label">Core Tools</div>
     <button class="tool-btn active" onclick="loadTool('chat')" style="--accent:var(--cyan)">
-      <div class="tool-icon" style="--icon-bg:var(--cyan-dim)">💬</div><span>AI Chat</span><span class="tool-cost">2cr</span>
+      <div class="tool-icon" style="--icon-bg:var(--cyan-dim)">💬</div><span>AI Chat</span>
     </button>
     <button class="tool-btn" onclick="loadTool('write')" style="--accent:var(--violet)">
-      <div class="tool-icon" style="--icon-bg:var(--violet-dim)">✍️</div><span>AI Writer</span><span class="tool-cost">3cr</span>
+      <div class="tool-icon" style="--icon-bg:var(--violet-dim)">✍️</div><span>AI Writer</span>
     </button>
     <button class="tool-btn" onclick="loadTool('summarize')" style="--accent:var(--green)">
-      <div class="tool-icon" style="--icon-bg:var(--green-dim)">📋</div><span>Summarizer</span><span class="tool-cost">3cr</span>
+      <div class="tool-icon" style="--icon-bg:var(--green-dim)">📋</div><span>Summarizer</span>
     </button>
     <button class="tool-btn" onclick="loadTool('translate')" style="--accent:var(--amber)">
-      <div class="tool-icon" style="--icon-bg:var(--amber-dim)">🌍</div><span>Translator</span><span class="tool-cost">3cr</span>
+      <div class="tool-icon" style="--icon-bg:var(--amber-dim)">🌍</div><span>Translator</span>
     </button>
     <div class="sidebar-label">Advanced</div>
     <button class="tool-btn" onclick="loadTool('code')" style="--accent:var(--pink)">
-      <div class="tool-icon" style="--icon-bg:var(--pink-dim)">💻</div><span>Code Helper</span><span class="tool-cost">3cr</span>
+      <div class="tool-icon" style="--icon-bg:var(--pink-dim)">💻</div><span>Code Helper</span>
     </button>
     <button class="tool-btn" onclick="loadTool('image')" style="--accent:var(--orange)">
-      <div class="tool-icon" style="--icon-bg:var(--orange-dim)">🖼️</div><span>Image AI</span><span class="tool-cost">5cr</span>
+      <div class="tool-icon" style="--icon-bg:var(--orange-dim)">🖼️</div><span>Image AI</span>
     </button>
     <button class="tool-btn" onclick="loadTool('ideas')" style="--accent:var(--red)">
-      <div class="tool-icon" style="--icon-bg:var(--red-dim)">🚀</div><span>Idea Engine</span><span class="tool-cost">3cr</span>
+      <div class="tool-icon" style="--icon-bg:var(--red-dim)">🚀</div><span>Idea Engine</span>
     </button>
     <button class="tool-btn" onclick="loadTool('email')" style="--accent:var(--violet)">
-      <div class="tool-icon" style="--icon-bg:var(--violet-dim)">📧</div><span>Email Crafter</span><span class="tool-cost">3cr</span>
+      <div class="tool-icon" style="--icon-bg:var(--violet-dim)">📧</div><span>Email Crafter</span>
     </button>
     <div style="flex:1"></div>
-    <button class="sidebar-buy-btn" onclick="openCreditsModal()">⚡ Buy Credits</button>
   </nav>
   <main class="main" id="mainArea"></main>
 </div>
 
 <script>
 // ── CONFIG ───────────────────────────────────────────────────
-// !! Replace this with your Railway URL after deploying !!
-const BACKEND = localStorage.getItem('wasongah_backend') || 'https://wasongah-ai-production.up.railway.app';
+// Same-origin by default (server serves this page). Override with localStorage 'wasongah_backend' if hosted separately.
+const BACKEND = localStorage.getItem('wasongah_backend') || '';
 
 // ── STATE ────────────────────────────────────────────────────
-let authToken = localStorage.getItem('wasongah_token') || '';
-let currentUser = JSON.parse(localStorage.getItem('wasongah_user') || 'null');
 let chatHistory = [];
-let currentChatSessionId = null;
-let selectedPackageId = null;
 let imgBase64 = null, imgMime = null;
 let currentTool = 'chat';
-let packages = [];
-let mpesaTxnId = null;
-let pollInterval = null;
 
 // ── API HELPER ───────────────────────────────────────────────
-async function api(endpoint, method = 'GET', body = null, auth = true) {
-  const headers = { 'Content-Type': 'application/json' };
-  if (auth && authToken) headers['Authorization'] = `Bearer ${authToken}`;
-  const opts = { method, headers };
+async function api(endpoint, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(`${BACKEND}${endpoint}`, opts);
   const data = await res.json();
@@ -349,266 +249,21 @@ async function api(endpoint, method = 'GET', body = null, auth = true) {
   return data;
 }
 
-// ── AUTH ─────────────────────────────────────────────────────
-function switchAuthTab(tab, el) {
-  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('loginForm').style.display = tab === 'login' ? '' : 'none';
-  document.getElementById('signupForm').style.display = tab === 'signup' ? '' : 'none';
-  document.getElementById('forgotForm').style.display = 'none';
-  clearAuthMsg();
-}
-
-function showForgot(show = true) {
-  document.getElementById('loginForm').style.display = show ? 'none' : '';
-  document.getElementById('forgotForm').style.display = show ? '' : 'none';
-  clearAuthMsg();
-}
-
-function showAuthMsg(msg, type = 'error') {
-  const el = document.getElementById('authMsg');
-  el.textContent = msg;
-  el.className = `auth-msg ${type}`;
-}
-function clearAuthMsg() { document.getElementById('authMsg').className = 'auth-msg'; }
-
-async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  if (!email || !password) return showAuthMsg('Please enter email and password.');
-  const btn = document.getElementById('loginBtn');
-  btn.disabled = true; btn.textContent = 'Signing in...';
-  try {
-    const data = await api('/api/auth/login', 'POST', { email, password }, false);
-    authToken = data.token;
-    currentUser = data.user;
-    localStorage.setItem('wasongah_token', authToken);
-    localStorage.setItem('wasongah_user', JSON.stringify(currentUser));
-    enterApp();
-  } catch (err) {
-    showAuthMsg(err.message);
-  }
-  btn.disabled = false; btn.textContent = 'Sign In →';
-}
-
-async function doSignup() {
-  const full_name = document.getElementById('signupName').value.trim();
-  const email = document.getElementById('signupEmail').value.trim();
-  const password = document.getElementById('signupPassword').value;
-  if (!email || !password) return showAuthMsg('Email and password are required.');
-  const btn = document.getElementById('signupBtn');
-  btn.disabled = true; btn.textContent = 'Creating account...';
-  try {
-    await api('/api/auth/signup', 'POST', { email, password, full_name }, false);
-    showAuthMsg('Account created! Check your email to verify, then sign in.', 'success');
-  } catch (err) {
-    showAuthMsg(err.message);
-  }
-  btn.disabled = false; btn.textContent = 'Create Account →';
-}
-
-async function doForgot() {
-  const email = document.getElementById('forgotEmail').value.trim();
-  if (!email) return showAuthMsg('Enter your email address.');
-  try {
-    await api('/api/auth/forgot-password', 'POST', { email }, false);
-    showAuthMsg('Reset link sent if that email exists.', 'success');
-  } catch (err) {
-    showAuthMsg(err.message);
-  }
-}
-
-async function doLogout() {
-  try { await api('/api/auth/logout', 'POST'); } catch {}
-  authToken = ''; currentUser = null;
-  localStorage.removeItem('wasongah_token');
-  localStorage.removeItem('wasongah_user');
-  document.getElementById('userDropdown').classList.remove('open');
-  showAuth();
-}
-
-function enterApp() {
-  document.getElementById('authScreen').classList.add('hidden');
-  document.getElementById('appHeader').style.display = '';
-  document.getElementById('appShell').style.display = '';
-  updateUserUI();
-  loadTool('chat');
-  loadPackages();
-}
-
-function showAuth() {
-  document.getElementById('authScreen').classList.remove('hidden');
-  document.getElementById('appHeader').style.display = 'none';
-  document.getElementById('appShell').style.display = 'none';
-}
-
-function updateUserUI() {
-  if (!currentUser) return;
-  document.getElementById('headerCredits').textContent = currentUser.credits ?? 0;
-  document.getElementById('userInitial').textContent = (currentUser.full_name || currentUser.email || '?')[0].toUpperCase();
-  document.getElementById('ddName').textContent = currentUser.full_name || 'User';
-  document.getElementById('ddEmail').textContent = currentUser.email || '';
-}
-
-function toggleUserMenu() {
-  document.getElementById('userDropdown').classList.toggle('open');
-}
-document.addEventListener('click', (e) => {
-  if (!document.getElementById('userMenuBtn')?.contains(e.target)) {
-    document.getElementById('userDropdown')?.classList.remove('open');
-  }
-});
-
-// ── CREDITS ──────────────────────────────────────────────────
-async function loadPackages() {
-  try {
-    const data = await api('/api/payments/packages', 'GET', null, false);
-    packages = data.packages || [];
-    renderPackages();
-  } catch {}
-}
-
-function renderPackages() {
-  const grid = document.getElementById('packagesGrid');
-  if (!packages.length) { grid.innerHTML = '<p style="color:var(--muted2);font-size:13px">No packages available.</p>'; return; }
-  grid.innerHTML = packages.map(p => `
-    <div class="pkg-card ${selectedPackageId === p.id ? 'selected' : ''}" onclick="selectPackage('${p.id}')" id="pkg_${p.id}">
-      ${p.is_popular ? '<div class="pkg-popular">POPULAR</div>' : ''}
-      <div class="pkg-name">${p.name}</div>
-      <div class="pkg-credits">${p.credits}<span> cr</span></div>
-      <div class="pkg-price">KES ${p.price_kes} · $${p.price_usd}</div>
-    </div>
-  `).join('');
-  // Auto-select popular
-  const popular = packages.find(p => p.is_popular) || packages[0];
-  if (popular) selectPackage(popular.id);
-}
-
-function selectPackage(id) {
-  selectedPackageId = id;
-  document.querySelectorAll('.pkg-card').forEach(c => c.classList.remove('selected'));
-  document.getElementById(`pkg_${id}`)?.classList.add('selected');
-  const pkg = packages.find(p => p.id === id);
-  if (pkg) document.getElementById('creditsModalSub').textContent = `Selected: ${pkg.name} — ${pkg.credits} credits`;
-}
-
-function openCreditsModal() {
-  document.getElementById('creditsModal').classList.remove('hidden');
-  document.getElementById('userDropdown').classList.remove('open');
-  if (!packages.length) loadPackages();
-}
-function closeCreditsModal() {
-  document.getElementById('creditsModal').classList.add('hidden');
-  clearInterval(pollInterval);
-  document.getElementById('mpesaStatus').className = 'payment-status';
-}
-
-function switchPayTab(tab, el) {
-  document.querySelectorAll('.pay-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('mpesaPanel').classList.toggle('active', tab === 'mpesa');
-  document.getElementById('stripePanel').classList.toggle('active', tab === 'stripe');
-}
-
-async function initMpesa() {
-  if (!selectedPackageId) return alert('Please select a package.');
-  const phone = document.getElementById('mpesaPhone').value.trim();
-  if (!phone) return alert('Please enter your M-Pesa phone number.');
-  const btn = document.getElementById('mpesaPayBtn');
-  btn.disabled = true; btn.textContent = 'Sending STK Push...';
-  const statusEl = document.getElementById('mpesaStatus');
-  statusEl.className = 'payment-status checking';
-  statusEl.textContent = '⏳ Sending payment request to your phone...';
-  try {
-    const data = await api('/api/payments/mpesa/initiate', 'POST', { phone, package_id: selectedPackageId });
-    mpesaTxnId = data.transaction_id;
-    statusEl.textContent = '📱 Check your phone! Enter your M-Pesa PIN to complete payment.';
-    pollMpesaStatus();
-  } catch (err) {
-    statusEl.className = 'payment-status failed';
-    statusEl.textContent = '❌ ' + err.message;
-    btn.disabled = false; btn.textContent = 'Pay with M-Pesa →';
-  }
-}
-
-function pollMpesaStatus() {
-  let attempts = 0;
-  pollInterval = setInterval(async () => {
-    attempts++;
-    if (attempts > 20) { clearInterval(pollInterval); return; }
-    try {
-      const data = await api('/api/payments/mpesa/status', 'POST', { transaction_id: mpesaTxnId });
-      if (data.status === 'completed') {
-        clearInterval(pollInterval);
-        document.getElementById('mpesaStatus').className = 'payment-status success';
-        document.getElementById('mpesaStatus').textContent = `✅ Payment confirmed! ${data.credits_bought} credits added. Receipt: ${data.receipt}`;
-        // Refresh credits
-        currentUser.credits = (currentUser.credits || 0) + data.credits_bought;
-        localStorage.setItem('wasongah_user', JSON.stringify(currentUser));
-        updateUserUI();
-        document.getElementById('mpesaPayBtn').disabled = false;
-        document.getElementById('mpesaPayBtn').textContent = 'Pay with M-Pesa →';
-      } else if (data.status === 'failed') {
-        clearInterval(pollInterval);
-        document.getElementById('mpesaStatus').className = 'payment-status failed';
-        document.getElementById('mpesaStatus').textContent = '❌ Payment failed or was cancelled.';
-        document.getElementById('mpesaPayBtn').disabled = false;
-        document.getElementById('mpesaPayBtn').textContent = 'Pay with M-Pesa →';
-      }
-    } catch {}
-  }, 3000);
-}
-
-async function initStripe() {
-  if (!selectedPackageId) return alert('Please select a package.');
-  const btn = document.getElementById('stripePayBtn');
-  btn.disabled = true; btn.textContent = 'Redirecting...';
-  try {
-    const data = await api('/api/payments/stripe/create-session', 'POST', { package_id: selectedPackageId });
-    window.location.href = data.checkout_url;
-  } catch (err) {
-    alert(err.message);
-    btn.disabled = false; btn.textContent = 'Pay with Card →';
-  }
-}
-
-// Check if returning from Stripe
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.get('payment') === 'success') {
-  setTimeout(() => {
-    alert('✅ Payment successful! Your credits have been added.');
-    window.history.replaceState({}, '', window.location.pathname);
-  }, 800);
-}
-
 // ── TOOL HELPERS ─────────────────────────────────────────────
-function deductLocalCredits(cost) {
-  currentUser.credits = Math.max(0, (currentUser.credits || 0) - cost);
-  localStorage.setItem('wasongah_user', JSON.stringify(currentUser));
-  updateUserUI();
-}
-
 async function callTool(tool, body) {
-  const data = await api(`/api/tools/${tool}`, 'POST', body);
-  if (data.credits_remaining !== undefined) {
-    currentUser.credits = data.credits_remaining;
-    localStorage.setItem('wasongah_user', JSON.stringify(currentUser));
-    updateUserUI();
-  }
-  return data;
+  return api(`/api/tools/${tool}`, 'POST', body);
 }
 
 // ── TOOL RENDERING ───────────────────────────────────────────
 const TOOLS = {
-  chat:      {icon:'💬',accent:'var(--cyan)',   iconBg:'var(--cyan-dim)',   title:'AI Chat',      desc:'Full conversation with streaming responses. (2 credits/message)'},
-  write:     {icon:'✍️',accent:'var(--violet)', iconBg:'var(--violet-dim)', title:'AI Writer',    desc:'Generate any written content. (3 credits)'},
-  summarize: {icon:'📋',accent:'var(--green)',  iconBg:'var(--green-dim)',  title:'Summarizer',   desc:'Summarize any long text. (3 credits)'},
-  translate: {icon:'🌍',accent:'var(--amber)',  iconBg:'var(--amber-dim)',  title:'Translator',   desc:'Translate between 20+ languages. (3 credits)'},
-  code:      {icon:'💻',accent:'var(--pink)',   iconBg:'var(--pink-dim)',   title:'Code Helper',  desc:'Write, explain, and debug code. (3 credits)'},
-  image:     {icon:'🖼️',accent:'var(--orange)', iconBg:'var(--orange-dim)', title:'Image AI',     desc:'Analyze any image with AI. (5 credits)'},
-  ideas:     {icon:'🚀',accent:'var(--red)',    iconBg:'var(--red-dim)',    title:'Idea Engine',  desc:'Generate creative ideas. (3 credits)'},
-  email:     {icon:'📧',accent:'var(--violet)', iconBg:'var(--violet-dim)', title:'Email Crafter','desc':'Write professional emails. (3 credits)'},
-  history:   {icon:'📊',accent:'var(--green)',  iconBg:'var(--green-dim)',  title:'Usage History','desc':'Your usage and transaction history.'},
+  chat:      {icon:'💬',accent:'var(--cyan)',   iconBg:'var(--cyan-dim)',   title:'AI Chat',      desc:'Full conversation with streaming responses.'},
+  write:     {icon:'✍️',accent:'var(--violet)', iconBg:'var(--violet-dim)', title:'AI Writer',    desc:'Generate any written content.'},
+  summarize: {icon:'📋',accent:'var(--green)',  iconBg:'var(--green-dim)',  title:'Summarizer',   desc:'Summarize any long text.'},
+  translate: {icon:'🌍',accent:'var(--amber)',  iconBg:'var(--amber-dim)',  title:'Translator',   desc:'Translate between 20+ languages.'},
+  code:      {icon:'💻',accent:'var(--pink)',   iconBg:'var(--pink-dim)',   title:'Code Helper',  desc:'Write, explain, and debug code.'},
+  image:     {icon:'🖼️',accent:'var(--orange)', iconBg:'var(--orange-dim)', title:'Image AI',     desc:'Analyze any image with AI.'},
+  ideas:     {icon:'🚀',accent:'var(--red)',    iconBg:'var(--red-dim)',    title:'Idea Engine',  desc:'Generate creative ideas.'},
+  email:     {icon:'📧',accent:'var(--violet)', iconBg:'var(--violet-dim)', title:'Email Crafter','desc':'Write professional emails.'},
 };
 
 function loadTool(key) {
@@ -626,7 +281,7 @@ function loadTool(key) {
       <div><div class="tool-header-title">${t.title}</div><div class="tool-header-desc">${t.desc}</div></div>
     </div>
     <div id="toolBody" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>`;
-  const renders = {chat:renderChat,write:renderWrite,summarize:renderSummarize,translate:renderTranslate,code:renderCode,image:renderImage,ideas:renderIdeas,email:renderEmail,history:renderHistory};
+  const renders = {chat:renderChat,write:renderWrite,summarize:renderSummarize,translate:renderTranslate,code:renderCode,image:renderImage,ideas:renderIdeas,email:renderEmail};
   renders[key]?.(document.getElementById('toolBody'));
 }
 
@@ -638,7 +293,6 @@ function outputArea(container) {
         <div class="output-header">
           <span>Output</span>
           <div style="display:flex;gap:8px;align-items:center">
-            <span id="creditTag"></span>
             <button class="copy-btn" onclick="copyOutput()">Copy</button>
           </div>
         </div>
@@ -651,10 +305,9 @@ function outputArea(container) {
 }
 
 function showLoading(el,text='Processing...'){el.innerHTML=`<div class="out-loading"><div class="loader-ring"></div><div>${text}</div></div>`}
-function showResult(el,text,cost){
+function showResult(el,text){
   el.innerHTML=`<div class="out-result">${formatText(text)}</div>`;
   window._lastOutput=text;
-  if(cost){const t=document.getElementById('creditTag');if(t)t.innerHTML=`<span class="credits-used-tag">-${cost} credits</span>`}
 }
 function formatText(t){
   return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -665,12 +318,12 @@ function selectChip(el,gid){document.querySelectorAll(`#${gid} .opt-chip`).forEa
 
 // ── CHAT ─────────────────────────────────────
 function renderChat(container) {
-  chatHistory = []; currentChatSessionId = null;
+  chatHistory = [];
   container.innerHTML = `
     <div class="chat-wrapper">
       <div class="chat-msgs" id="chatMsgs">
         <div class="msg ai"><div class="msg-name">WasongahAI</div>
-          <div class="msg-bubble">Hello! I'm WasongahAI. Ask me anything — questions, analysis, writing, code, math, and more. Each message costs 2 credits.</div>
+          <div class="msg-bubble">Hello! I'm WasongahAI. Ask me anything — questions, analysis, writing, code, math, and more.</div>
         </div>
       </div>
       <div class="chat-input-bar">
@@ -686,7 +339,6 @@ async function sendChat() {
   const btn = document.getElementById('chatSendBtn');
   const text = input.value.trim();
   if (!text) return;
-  if ((currentUser.credits||0) < 2) return openCreditsModal();
 
   msgs.innerHTML += `<div class="msg user"><div class="msg-name">You</div><div class="msg-bubble">${text.replace(/</g,'&lt;')}</div></div>`;
   input.value = ''; btn.disabled = true;
@@ -700,14 +352,11 @@ async function sendChat() {
 
   try {
     const res = await fetch(`${BACKEND}/api/stream`, {
-      method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${authToken}`},
-      body: JSON.stringify({messages:chatHistory, session_id:currentChatSessionId})
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({messages:chatHistory})
     });
 
-    if (res.status === 402) {
-      document.getElementById(tid).querySelector('.msg-bubble').textContent = '⚡ Not enough credits. Buy more to continue.';
-      return openCreditsModal();
-    }
+    if (!res.ok) { let m='Request failed'; try{m=(await res.json()).error||m}catch{} throw new Error(m); }
 
     const reader = res.body.getReader(); const decoder = new TextDecoder();
     let buf = '';
@@ -720,11 +369,10 @@ async function sendChat() {
           try {
             const ev = JSON.parse(line.slice(6));
             if (ev.type==='text') { fullReply+=ev.text; document.getElementById(`${tid}_t`).innerHTML=formatText(fullReply)+'▋'; msgs.scrollTop=msgs.scrollHeight; }
+            if (ev.type==='error') throw new Error(ev.message);
             if (ev.type==='done') {
               document.getElementById(`${tid}_t`).innerHTML=formatText(fullReply);
               chatHistory.push({role:'assistant',content:fullReply});
-              currentUser.credits=(currentUser.credits||0)-2; updateUserUI();
-              localStorage.setItem('wasongah_user',JSON.stringify(currentUser));
             }
           } catch {}
         }
@@ -745,7 +393,7 @@ function renderWrite(c) {
     <div><label>Tone</label><div class="options-row" id="wTo">${['Professional','Casual','Persuasive','Humorous','Inspirational'].map((t,i)=>`<button class="opt-chip ${i===0?'active':''}" onclick="selectChip(this,'wTo')">${t}</button>`).join('')}</div></div>
     <div><label>Topic</label><textarea id="wTopic" placeholder="What should I write about?"></textarea></div>
     <div><label>Length</label><div class="options-row" id="wL">${['Short','Medium','Long'].map((t,i)=>`<button class="opt-chip ${i===1?'active':''}" onclick="selectChip(this,'wL')">${t}</button>`).join('')}</div></div>
-    <button class="run-btn" onclick="runTool('write',{type:document.querySelector('#wT .active')?.textContent,tone:document.querySelector('#wTo .active')?.textContent,topic:document.getElementById('wTopic').value.trim(),length:document.querySelector('#wL .active')?.textContent},'topic')">Generate (3 credits) →</button>`;
+    <button class="run-btn" onclick="runTool('write',{type:document.querySelector('#wT .active')?.textContent,tone:document.querySelector('#wTo .active')?.textContent,topic:document.getElementById('wTopic').value.trim(),length:document.querySelector('#wL .active')?.textContent},'topic')">Generate →</button>`;
 }
 
 // ── SUMMARIZER ───────────────────────────────
@@ -754,7 +402,7 @@ function renderSummarize(c) {
   input.innerHTML=`
     <div><label>Paste Text</label><textarea id="sumText" style="min-height:200px" placeholder="Paste any long text..."></textarea></div>
     <div><label>Style</label><div class="options-row" id="sS">${['Bullet Points','Short Paragraph','Key Takeaways','Executive Brief'].map((t,i)=>`<button class="opt-chip ${i===0?'active':''}" onclick="selectChip(this,'sS')">${t}</button>`).join('')}</div></div>
-    <button class="run-btn" onclick="runTool('summarize',{text:document.getElementById('sumText').value.trim(),style:document.querySelector('#sS .active')?.textContent},'text')">Summarize (3 credits) →</button>`;
+    <button class="run-btn" onclick="runTool('summarize',{text:document.getElementById('sumText').value.trim(),style:document.querySelector('#sS .active')?.textContent},'text')">Summarize →</button>`;
 }
 
 // ── TRANSLATOR ───────────────────────────────
@@ -768,7 +416,7 @@ function renderTranslate(c) {
       <div><label>To</label><select id="transTo">${langs.map((l,i)=>`<option ${i===1?'selected':''}>${l}</option>`).join('')}</select></div>
     </div>
     <div><label>Style</label><div class="options-row" id="tS">${['Natural','Formal','Casual'].map((t,i)=>`<button class="opt-chip ${i===0?'active':''}" onclick="selectChip(this,'tS')">${t}</button>`).join('')}</div></div>
-    <button class="run-btn" onclick="runTool('translate',{text:document.getElementById('transText').value.trim(),from:document.getElementById('transFrom').value,to:document.getElementById('transTo').value,style:document.querySelector('#tS .active')?.textContent},'text')">Translate (3 credits) →</button>`;
+    <button class="run-btn" onclick="runTool('translate',{text:document.getElementById('transText').value.trim(),from:document.getElementById('transFrom').value,to:document.getElementById('transTo').value,style:document.querySelector('#tS .active')?.textContent},'text')">Translate →</button>`;
 }
 
 // ── CODE ─────────────────────────────────────
@@ -779,7 +427,7 @@ function renderCode(c) {
     <div><label>Task</label><div class="options-row" id="cT">${['Write Code','Explain Code','Debug Code','Optimize Code','Add Comments'].map((t,i)=>`<button class="opt-chip ${i===0?'active':''}" onclick="selectChip(this,'cT')">${t}</button>`).join('')}</div></div>
     <div><label>Language</label><select id="codeLang">${langs.map(l=>`<option>${l}</option>`).join('')}</select></div>
     <div><label>Code / Request</label><textarea id="codeInput" style="font-family:var(--mono);font-size:12.5px;min-height:160px" placeholder="Paste code or describe what you need..."></textarea></div>
-    <button class="run-btn" onclick="runTool('code',{task:document.querySelector('#cT .active')?.textContent,language:document.getElementById('codeLang').value,input:document.getElementById('codeInput').value.trim()},'input')">Run Code AI (3 credits) →</button>`;
+    <button class="run-btn" onclick="runTool('code',{task:document.querySelector('#cT .active')?.textContent,language:document.getElementById('codeLang').value,input:document.getElementById('codeInput').value.trim()},'input')">Run Code AI →</button>`;
 }
 
 // ── IMAGE ────────────────────────────────────
@@ -796,7 +444,7 @@ function renderImage(c) {
     </div>
     <div><label>Task</label><div class="options-row" id="iT">${['Describe it','Analyze details','Extract text','Identify objects','Creative story'].map((t,i)=>`<button class="opt-chip ${i===0?'active':''}" onclick="selectChip(this,'iT')">${t}</button>`).join('')}</div></div>
     <div><label>Extra instructions</label><textarea id="imgExtra" style="min-height:60px" placeholder="Any specifics?"></textarea></div>
-    <button class="run-btn" onclick="runImageTool()">Analyze Image (5 credits) →</button>`;
+    <button class="run-btn" onclick="runImageTool()">Analyze Image →</button>`;
 }
 function previewImg(e) {
   const file=e.target.files[0]; if(!file)return;
@@ -808,9 +456,8 @@ function previewImg(e) {
 async function runImageTool() {
   if(!imgBase64){alert('Please upload an image.');return}
   const out=document.getElementById('outputContent');
-  if((currentUser.credits||0)<5)return openCreditsModal();
   showLoading(out,'Analyzing image...');
-  try{const r=await callTool('image',{task:document.querySelector('#iT .active')?.textContent,extra:document.getElementById('imgExtra').value.trim(),imageBase64:imgBase64,imageMime:imgMime});showResult(out,r.text,5)}
+  try{const r=await callTool('image',{task:document.querySelector('#iT .active')?.textContent,extra:document.getElementById('imgExtra').value.trim(),imageBase64:imgBase64,imageMime:imgMime});showResult(out,r.text)}
   catch(err){out.innerHTML=`<div class="out-empty"><p>⚠️ ${err.message}</p></div>`}
 }
 
@@ -824,7 +471,7 @@ function renderIdeas(c) {
       <div><label>Count</label><div class="options-row" id="ideaC">${['5','10','15'].map((t,i)=>`<button class="opt-chip ${i===1?'active':''}" onclick="selectChip(this,'ideaC')">${t}</button>`).join('')}</div></div>
       <div><label>Creativity</label><div class="options-row" id="ideaCr">${['Practical','Balanced','Wild'].map((t,i)=>`<button class="opt-chip ${i===1?'active':''}" onclick="selectChip(this,'ideaCr')">${t}</button>`).join('')}</div></div>
     </div>
-    <button class="run-btn" onclick="runTool('ideas',{topic:document.getElementById('ideaTopic').value.trim(),type:document.querySelector('#ideaT .active')?.textContent,count:document.querySelector('#ideaC .active')?.textContent,creativity:document.querySelector('#ideaCr .active')?.textContent},'topic')">Generate Ideas (3 credits) →</button>`;
+    <button class="run-btn" onclick="runTool('ideas',{topic:document.getElementById('ideaTopic').value.trim(),type:document.querySelector('#ideaT .active')?.textContent,count:document.querySelector('#ideaC .active')?.textContent,creativity:document.querySelector('#ideaCr .active')?.textContent},'topic')">Generate Ideas →</button>`;
 }
 
 // ── EMAIL ────────────────────────────────────
@@ -838,61 +485,24 @@ function renderEmail(c) {
     </div>
     <div><label>Context</label><textarea id="emailCtx" placeholder="What is this email about?"></textarea></div>
     <div><label>Tone</label><div class="options-row" id="eTone">${['Professional','Warm','Confident','Urgent'].map((t,i)=>`<button class="opt-chip ${i===0?'active':''}" onclick="selectChip(this,'eTone')">${t}</button>`).join('')}</div></div>
-    <button class="run-btn" onclick="runTool('email',{purpose:document.querySelector('#eT .active')?.textContent,from:document.getElementById('emailFrom').value,to:document.getElementById('emailTo').value,context:document.getElementById('emailCtx').value.trim(),tone:document.querySelector('#eTone .active')?.textContent},'context')">Craft Email (3 credits) →</button>`;
-}
-
-// ── HISTORY ──────────────────────────────────
-async function renderHistory(container) {
-  container.innerHTML = `<div style="padding:1.5rem;flex:1;overflow-y:auto" id="historyContent"><div class="out-loading"><div class="loader-ring"></div></div></div>`;
-  try {
-    const [usage, txns] = await Promise.all([api('/api/user/usage'), api('/api/user/transactions')]);
-    document.getElementById('historyContent').innerHTML = `
-      <h3 style="font-family:var(--display);margin-bottom:1rem;font-size:1.1rem">Recent AI Usage</h3>
-      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;margin-bottom:2rem">
-        ${usage.usage.slice(0,20).map(u=>`
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px">
-            <span style="color:var(--text)">${u.tool}</span>
-            <span style="color:var(--amber)">-${u.credits_used} cr</span>
-            <span style="color:var(--muted);font-size:11px">${new Date(u.created_at).toLocaleDateString()}</span>
-          </div>`).join('') || '<div style="padding:1rem;color:var(--muted);text-align:center;font-size:13px">No usage yet</div>'}
-      </div>
-      <h3 style="font-family:var(--display);margin-bottom:1rem;font-size:1.1rem">Transactions</h3>
-      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);overflow:hidden">
-        ${txns.transactions.map(t=>`
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px">
-            <span style="color:var(--text)">${t.credit_packages?.name||t.type} — ${t.credits_bought} credits</span>
-            <span class="${t.status==='completed'?'':''}; color:${t.status==='completed'?'var(--green)':t.status==='pending'?'var(--amber)':'var(--red)'}">${t.status}</span>
-            <span style="color:var(--muted);font-size:11px">${t.amount_kes?`KES ${t.amount_kes}`:`$${t.amount_usd}`}</span>
-          </div>`).join('') || '<div style="padding:1rem;color:var(--muted);text-align:center;font-size:13px">No transactions yet</div>'}
-      </div>`;
-  } catch(err) {
-    document.getElementById('historyContent').innerHTML = `<p style="color:var(--red)">Error loading history: ${err.message}</p>`;
-  }
+    <button class="run-btn" onclick="runTool('email',{purpose:document.querySelector('#eT .active')?.textContent,from:document.getElementById('emailFrom').value,to:document.getElementById('emailTo').value,context:document.getElementById('emailCtx').value.trim(),tone:document.querySelector('#eTone .active')?.textContent},'context')">Craft Email →</button>`;
 }
 
 // ── GENERIC TOOL RUNNER ──────────────────────
 async function runTool(tool, body, requiredField) {
   if (requiredField && !body[requiredField]) { alert(`Please fill in the required field.`); return; }
-  const costs = {chat:2,write:3,summarize:3,translate:3,code:3,image:5,ideas:3,email:3};
-  const cost = costs[tool]||3;
-  if ((currentUser.credits||0) < cost) return openCreditsModal();
   const out = document.getElementById('outputContent');
   showLoading(out, 'Processing...');
   try {
     const r = await callTool(tool, body);
-    showResult(out, r.text, cost);
+    showResult(out, r.text);
   } catch(err) {
-    if (err.message.includes('credits')) return openCreditsModal();
     out.innerHTML = `<div class="out-empty"><p>⚠️ ${err.message}</p></div>`;
   }
 }
 
 // ── INIT ─────────────────────────────────────
-if (authToken && currentUser) {
-  enterApp();
-} else {
-  showAuth();
-}
+loadTool('chat');
 </script>
 </body>
 </html>
