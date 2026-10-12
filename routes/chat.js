@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getClient } = require('../src/anthropic');
+const { generate } = require('../src/gemini');
 
 const SYSTEM = 'You are WasongahAI, a helpful, smart, and friendly AI assistant. Be conversational, accurate, and genuinely useful.';
 
@@ -11,13 +11,8 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'messages array is required' });
   }
   try {
-    const response = await getClient().messages.create({
-      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
-      max_tokens: parseInt(process.env.MAX_TOKENS) || 1500,
-      system: system || SYSTEM,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
-    });
-    res.json({ success: true, text: response.content?.[0]?.text || '' });
+    const text = await generate({ messages, system: system || SYSTEM });
+    res.json({ success: true, text });
   } catch (err) {
     console.error('[Chat Error]', err.message);
     res.status(500).json({ error: err.message });

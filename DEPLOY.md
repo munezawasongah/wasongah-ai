@@ -1,10 +1,11 @@
 # Deploy (Railway)
 
-Required environment variables:
-- `ANTHROPIC_API_KEY`
+Required environment variable:
+- `GEMINI_API_KEY` (create one free at https://aistudio.google.com/apikey)
 
 Optional:
-- `FRONTEND_URL` (default `*`, allows any origin; a comma-separated list restricts CORS)
-- `MAX_TOKENS` (default 1500)
+- `GEMINI_MODEL` (default `gemini-2.5-flash`)
+- `FRONTEND_URL` (default `*`)
+- `MAX_TOKENS` (default 4096)
 
-No Supabase, Stripe or M-Pesa configuration is needed. The app is open to everyone with no sign-in and no rate limit.
+No Supabase, Stripe or Anthropic configuration is needed. The app is open to everyone with no sign-in and no rate limit.

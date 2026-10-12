@@ -40,7 +40,7 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`WasongahAI running on http://localhost:${PORT}`);
-  console.log(`Anthropic key: ${process.env.ANTHROPIC_API_KEY ? 'OK' : 'MISSING'}`);
+  console.log(`Gemini key: ${(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) ? 'OK' : 'MISSING'}`);
 });
 
 module.exports = app;

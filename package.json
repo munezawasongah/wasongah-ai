@@ -1,7 +1,7 @@
 {
   "name": "wasongah-ai-backend",
   "version": "1.0.0",
-  "description": "WasongahAI — AI Platform Backend with Auth, Credits & Payments",
+  "description": "WasongahAI — AI Platform Backend (open access, powered by Google Gemini)",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -11,7 +11,6 @@
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "@anthropic-ai/sdk": "^0.20.1",
     "helmet": "^7.1.0",
     "morgan": "^1.10.0"
   },

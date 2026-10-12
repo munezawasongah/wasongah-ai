@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getClient } = require('../src/anthropic');
+const { generate } = require('../src/gemini');
 
 const TOOL_CONFIGS = {
   write: {
@@ -63,30 +63,21 @@ router.post('/:tool', async (req, res) => {
   try {
     const config = TOOL_CONFIGS[tool];
     const promptData = config.buildPrompt(req.body);
-    const client = getClient();
-
     let messages;
     if (promptData?.isImage) {
       messages = [{ role:'user', content:[
-        { type:'image', source:{ type:'base64', media_type: promptData.imageMime, data: promptData.imageBase64 } },
-        { type:'text', text:`Task: ${promptData.task||'Describe it'}. ${promptData.extra||''}` }
+        { inlineData: { mimeType: promptData.imageMime, data: promptData.imageBase64 } },
+        { text: `Task: ${promptData.task||'Describe it'}. ${promptData.extra||''}` }
       ]}];
     } else {
       messages = [{ role:'user', content: promptData }];
     }
 
-    const response = await client.messages.create({
-      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
-      max_tokens: parseInt(process.env.MAX_TOKENS) || 1500,
-      system: config.system,
-      messages,
-    });
-
-    const text = response.content?.[0]?.text || '';
+    const text = await generate({ messages, system: config.system });
 
     res.json({ success: true, tool, text });
   } catch (err) {
-    if (!err.status) return res.status(400).json({ error: err.message });
+    if (!err.status && /required$/.test(err.message)) return res.status(400).json({ error: err.message });
     console.error(`[Tool:${tool}]`, err.message);
     res.status(500).json({ error: err.message });
   }

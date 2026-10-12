@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getClient } = require('../src/anthropic');
+const { stream } = require('../src/gemini');
 
 router.post('/', async (req, res) => {
   const { messages, system } = req.body;
@@ -12,28 +12,25 @@ router.post('/', async (req, res) => {
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
-  try {
-    const stream = getClient().messages.stream({
-      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
-      max_tokens: parseInt(process.env.MAX_TOKENS) || 1500,
-      system: system || 'You are WasongahAI, a helpful and smart AI assistant.',
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
-    });
+  const ac = new AbortController();
+  res.on('close', () => ac.abort());
+  const send = (o) => { if (!res.writableEnded) res.write(`data: ${JSON.stringify(o)}\n\n`); };
 
-    stream.on('text', (text) => res.write(`data: ${JSON.stringify({ type: 'text', text })}\n\n`));
-    stream.on('finalMessage', () => {
-      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
-      res.end();
+  try {
+    await stream({
+      messages,
+      system: system || 'You are WasongahAI, a helpful and smart AI assistant.',
+      signal: ac.signal,
+      onText: (text) => send({ type: 'text', text }),
     });
-    stream.on('error', (err) => {
-      res.write(`data: ${JSON.stringify({ type: 'error', message: err.message })}\n\n`);
-      res.end();
-    });
-    req.on('close', () => stream.abort());
+    send({ type: 'done' });
   } catch (err) {
-    res.write(`data: ${JSON.stringify({ type: 'error', message: err.message })}\n\n`);
-    res.end();
+    if (err.name !== 'AbortError') {
+      console.error('[Stream Error]', err.message);
+      send({ type: 'error', message: err.message });
+    }
   }
+  res.end();
 });
 
 module.exports = router;
