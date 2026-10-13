@@ -208,6 +208,8 @@ body{height:100vh;height:100dvh;min-height:0}
   .chat-msgs{padding:.9rem}
   .chat-send{width:44px;height:44px}
 }
+.spinner{width:34px;height:34px;border:3px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:vspin .9s linear infinite}
+@keyframes vspin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -240,6 +242,9 @@ body{height:100vh;height:100dvh;min-height:0}
     </button>
     <button class="tool-btn" onclick="loadTool('image')" style="--accent:var(--orange)">
       <div class="tool-icon" style="--icon-bg:var(--orange-dim)">🖼️</div><span>Image</span>
+    </button>
+    <button class="tool-btn" onclick="loadTool('video')" style="--accent:var(--cyan)">
+      <div class="tool-icon" style="--icon-bg:var(--cyan-dim)">🎬</div><span>Video</span>
     </button>
     <button class="tool-btn" onclick="loadTool('ideas')" style="--accent:var(--red)">
       <div class="tool-icon" style="--icon-bg:var(--red-dim)">🚀</div><span>Idea Engine</span>
@@ -285,6 +290,7 @@ const TOOLS = {
   translate: {icon:'🌍',accent:'var(--amber)',  iconBg:'var(--amber-dim)',  title:'Translator',   desc:'Translate between 20+ languages.'},
   code:      {icon:'💻',accent:'var(--pink)',   iconBg:'var(--pink-dim)',   title:'Code Helper',  desc:'Write, explain, and debug code.'},
   image:     {icon:'🖼️',accent:'var(--orange)', iconBg:'var(--orange-dim)', title:'Image',        desc:'Analyze any image.'},
+  video:     {icon:'🎬',accent:'var(--cyan)',   iconBg:'var(--cyan-dim)',   title:'Video',        desc:'Turn a description into an animated video.'},
   ideas:     {icon:'🚀',accent:'var(--red)',    iconBg:'var(--red-dim)',    title:'Idea Engine',  desc:'Generate creative ideas.'},
   email:     {icon:'📧',accent:'var(--violet)', iconBg:'var(--violet-dim)', title:'Email Crafter','desc':'Write professional emails.'},
 };
@@ -304,7 +310,7 @@ function loadTool(key) {
       <div><div class="tool-header-title">${t.title}</div><div class="tool-header-desc">${t.desc}</div></div>
     </div>
     <div id="toolBody" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>`;
-  const renders = {chat:renderChat,write:renderWrite,summarize:renderSummarize,translate:renderTranslate,code:renderCode,image:renderImage,ideas:renderIdeas,email:renderEmail};
+  const renders = {chat:renderChat,write:renderWrite,summarize:renderSummarize,translate:renderTranslate,code:renderCode,image:renderImage,video:renderVideo,ideas:renderIdeas,email:renderEmail};
   renders[key]?.(document.getElementById('toolBody'));
 }
 
@@ -498,6 +504,64 @@ function renderIdeas(c) {
     </div>
     <button class="run-btn" onclick="runTool('ideas',{topic:document.getElementById('ideaTopic').value.trim(),type:document.querySelector('#ideaT .active')?.textContent,count:document.querySelector('#ideaC .active')?.textContent,creativity:document.querySelector('#ideaCr .active')?.textContent},'topic')">Generate Ideas →</button>`;
 }
+
+
+// ── VIDEO ────────────────────────────────────
+let _videoTimer = null;
+function renderVideo(c) {
+  const {input,output}=outputArea(c);
+  const chips=(id,arr,def=0)=>`<div class="options-row" id="${id}">${arr.map((t,i)=>`<button class="opt-chip ${i===def?'active':''}" onclick="selectChip(this,'${id}')">${t}</button>`).join('')}</div>`;
+  input.innerHTML=`
+    <div><label>Describe your video</label>
+      <textarea id="vidPrompt" style="min-height:130px" placeholder="e.g. A friendly robot waters plants on a sunny rooftop garden, soft morning light, gentle camera pan"></textarea></div>
+    <div><label>Style</label>${chips('vS',['None','Cinematic','3D animation','Cartoon','Anime','Realistic','Motion graphics'])}</div>
+    <div><label>Format</label>${chips('vR',['16:9','9:16'])}</div>
+    <div><label>Length</label>${chips('vD',['4s','6s','8s'],2)}</div>
+    <div><label>Quality</label>${chips('vQ',['Fast','Lite','Standard'])}</div>
+    <button class="run-btn" id="vidBtn" onclick="runVideo()">Generate Video →</button>`;
+  output.innerHTML=`<div class="out-empty"><div style="font-size:2.5rem;opacity:0.3">🎬</div><p>Your video appears here.<br><span style="font-size:12px;color:var(--muted)">Generation takes 1–3 minutes.</span></p></div>`;
+}
+
+async function runVideo() {
+  const prompt=document.getElementById('vidPrompt').value.trim();
+  const out=document.getElementById('outputContent');
+  if(!prompt){out.innerHTML=`<div class="out-result" style="color:#fca5a5">Please describe the video you want.</div>`;return;}
+  const btn=document.getElementById('vidBtn');
+  const pick=id=>document.querySelector(`#${id} .active`)?.textContent||'';
+  const body={prompt,style:pick('vS'),aspectRatio:pick('vR'),duration:parseInt(pick('vD')),quality:pick('vQ').toLowerCase()};
+  clearTimeout(_videoTimer);
+  btn.disabled=true; btn.textContent='Generating…';
+  const started=Date.now();
+  out.innerHTML=`<div class="out-empty"><div class="spinner"></div><p id="vidStatus">Starting…</p></div>`;
+  try {
+    const r=await api('/api/video','POST',body);
+    const poll=async()=>{
+      try {
+        const s=await api(`/api/video/status?id=${encodeURIComponent(r.id)}`);
+        if(!document.getElementById('vidStatus')&&!s.done) return; // user navigated away
+        if(!s.done){
+          const el=document.getElementById('vidStatus');
+          if(el) el.textContent=`Creating your video… ${Math.round((Date.now()-started)/1000)}s`;
+          if(Date.now()-started>10*60*1000) throw new Error('Timed out. Please try again.');
+          _videoTimer=setTimeout(poll,8000); return;
+        }
+        if(s.error) throw new Error(s.error);
+        const o=document.getElementById('outputContent'); if(!o) return;
+        o.innerHTML=`<div class="out-result">
+          <video src="${s.url}" controls autoplay loop playsinline style="width:100%;max-height:70vh;border-radius:10px;background:#000"></video>
+          <div style="margin-top:12px"><a class="copy-btn" href="${s.url}&download=1" style="text-decoration:none;display:inline-block">Download MP4</a></div></div>`;
+        const b=document.getElementById('vidBtn'); if(b){b.disabled=false;b.textContent='Generate Video →';}
+      } catch(e) { vidFail(e); }
+    };
+    poll();
+  } catch(e) { vidFail(e); }
+}
+function vidFail(e){
+  const o=document.getElementById('outputContent');
+  if(o) o.innerHTML=`<div class="out-result" style="color:#fca5a5">⚠️ ${esc(e.message)}</div>`;
+  const b=document.getElementById('vidBtn'); if(b){b.disabled=false;b.textContent='Generate Video →';}
+}
+function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 
 // ── EMAIL ────────────────────────────────────
 function renderEmail(c) {
