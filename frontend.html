@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>WasongahAI — Your AI Workspace</title>
+<title>WasongahAI — Your Workspace</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -223,10 +223,10 @@ body{height:100vh;height:100dvh;min-height:0}
   <nav class="sidebar">
     <div class="sidebar-label">Core Tools</div>
     <button class="tool-btn active" onclick="loadTool('chat')" style="--accent:var(--cyan)">
-      <div class="tool-icon" style="--icon-bg:var(--cyan-dim)">💬</div><span>AI Chat</span>
+      <div class="tool-icon" style="--icon-bg:var(--cyan-dim)">💬</div><span>Chat</span>
     </button>
     <button class="tool-btn" onclick="loadTool('write')" style="--accent:var(--violet)">
-      <div class="tool-icon" style="--icon-bg:var(--violet-dim)">✍️</div><span>AI Writer</span>
+      <div class="tool-icon" style="--icon-bg:var(--violet-dim)">✍️</div><span>Writer</span>
     </button>
     <button class="tool-btn" onclick="loadTool('summarize')" style="--accent:var(--green)">
       <div class="tool-icon" style="--icon-bg:var(--green-dim)">📋</div><span>Summarizer</span>
@@ -239,7 +239,7 @@ body{height:100vh;height:100dvh;min-height:0}
       <div class="tool-icon" style="--icon-bg:var(--pink-dim)">💻</div><span>Code Helper</span>
     </button>
     <button class="tool-btn" onclick="loadTool('image')" style="--accent:var(--orange)">
-      <div class="tool-icon" style="--icon-bg:var(--orange-dim)">🖼️</div><span>Image AI</span>
+      <div class="tool-icon" style="--icon-bg:var(--orange-dim)">🖼️</div><span>Image</span>
     </button>
     <button class="tool-btn" onclick="loadTool('ideas')" style="--accent:var(--red)">
       <div class="tool-icon" style="--icon-bg:var(--red-dim)">🚀</div><span>Idea Engine</span>
@@ -279,12 +279,12 @@ async function callTool(tool, body) {
 
 // ── TOOL RENDERING ───────────────────────────────────────────
 const TOOLS = {
-  chat:      {icon:'💬',accent:'var(--cyan)',   iconBg:'var(--cyan-dim)',   title:'AI Chat',      desc:'Full conversation with streaming responses.'},
-  write:     {icon:'✍️',accent:'var(--violet)', iconBg:'var(--violet-dim)', title:'AI Writer',    desc:'Generate any written content.'},
+  chat:      {icon:'💬',accent:'var(--cyan)',   iconBg:'var(--cyan-dim)',   title:'Chat',         desc:'Full conversation with streaming responses.'},
+  write:     {icon:'✍️',accent:'var(--violet)', iconBg:'var(--violet-dim)', title:'Writer',       desc:'Generate any written content.'},
   summarize: {icon:'📋',accent:'var(--green)',  iconBg:'var(--green-dim)',  title:'Summarizer',   desc:'Summarize any long text.'},
   translate: {icon:'🌍',accent:'var(--amber)',  iconBg:'var(--amber-dim)',  title:'Translator',   desc:'Translate between 20+ languages.'},
   code:      {icon:'💻',accent:'var(--pink)',   iconBg:'var(--pink-dim)',   title:'Code Helper',  desc:'Write, explain, and debug code.'},
-  image:     {icon:'🖼️',accent:'var(--orange)', iconBg:'var(--orange-dim)', title:'Image AI',     desc:'Analyze any image with AI.'},
+  image:     {icon:'🖼️',accent:'var(--orange)', iconBg:'var(--orange-dim)', title:'Image',        desc:'Analyze any image.'},
   ideas:     {icon:'🚀',accent:'var(--red)',    iconBg:'var(--red-dim)',    title:'Idea Engine',  desc:'Generate creative ideas.'},
   email:     {icon:'📧',accent:'var(--violet)', iconBg:'var(--violet-dim)', title:'Email Crafter','desc':'Write professional emails.'},
 };
