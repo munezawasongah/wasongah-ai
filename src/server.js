@@ -9,6 +9,8 @@ const chatRouter   = require('../routes/chat');
 const toolsRouter  = require('../routes/tools');
 const streamRouter = require('../routes/stream');
 const videoRouter  = require('../routes/video');
+const imageRouter  = require('../routes/image');
+const human        = require('./human');
 const { errorHandler } = require('../middleware/errorHandler');
 
 const app = express();
@@ -34,11 +36,17 @@ app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: 0 }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend.html')));
 app.get('/api/health', (req, res) => res.json({ status: 'healthy', uptime: Math.floor(process.uptime()) + 's', timestamp: new Date().toISOString() }));
 
-// Routes (open to everyone, no auth, no credits, no rate limit)
+// Optional bot protection (inert unless TURNSTILE_* env vars are set)
+app.get('/api/config', (req, res) => res.json({ turnstileSiteKey: human.enabled() ? process.env.TURNSTILE_SITE_KEY : null }));
+app.post('/api/verify', human.verify);
+app.use('/api', human.requireHuman);
+
+// Routes (open to everyone, no accounts, no rate limit)
 app.use('/api/chat',   chatRouter);
 app.use('/api/tools',  toolsRouter);
 app.use('/api/stream', streamRouter);
 app.use('/api/video',  videoRouter);
+app.use('/api/image',  imageRouter);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);

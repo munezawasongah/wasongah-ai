@@ -12,17 +12,10 @@ const QUALITY = {
   standard: { model: () => process.env.VEO_MODEL_STANDARD || 'veo-3.1-generate-preview',      rate: 0.40 },
 };
 
-// Global daily spend guard (all users combined). Resets each UTC day / on restart.
-const DAILY_BUDGET = parseFloat(process.env.VIDEO_DAILY_BUDGET_USD || '10');
-let spend = { day: '', usd: 0 };
-function today() { return new Date().toISOString().slice(0, 10); }
-function charge(usd) {
-  if (spend.day !== today()) spend = { day: today(), usd: 0 };
-  if (spend.usd + usd > DAILY_BUDGET) return false;
-  spend.usd += usd;
-  return true;
-}
-function refund(usd) { spend.usd = Math.max(0, spend.usd - usd); }
+const { makeBudget } = require('../src/budget');
+const budget = makeBudget('VIDEO_DAILY_BUDGET_USD', 10);
+const charge = (usd) => budget.charge(usd);
+const refund = (usd) => budget.refund(usd);
 
 function key() {
   const k = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -36,12 +29,20 @@ async function googleError(res) {
   return new Error(msg);
 }
 
-// POST /api/video  { prompt, style?, aspectRatio?, duration?, quality? }
+// POST /api/video  { prompt, style?, aspectRatio?, duration?, quality?, image?: {data, mime} }
 router.post('/', async (req, res) => {
   try {
-    const { prompt, style, aspectRatio = '16:9', duration = 8, quality = 'fast' } = req.body || {};
+    const { prompt, style, aspectRatio = '16:9', duration = 8, quality = 'fast', image } = req.body || {};
     if (!prompt || !String(prompt).trim()) return res.status(400).json({ error: 'prompt is required' });
     if (String(prompt).length > 2000) return res.status(400).json({ error: 'prompt is too long (max 2000 characters)' });
+
+    let imageInput = null;
+    if (image) {
+      if (!['image/png', 'image/jpeg', 'image/webp'].includes(image.mime) || typeof image.data !== 'string' || image.data.length > 9e6) {
+        return res.status(400).json({ error: 'image must be a PNG, JPEG or WEBP under 6 MB' });
+      }
+      imageInput = { bytesBase64Encoded: image.data, mimeType: image.mime };
+    }
 
     const q = QUALITY[quality] || QUALITY.fast;
     const secs = [4, 6, 8].includes(Number(duration)) ? Number(duration) : 8;
@@ -58,7 +59,7 @@ router.post('/', async (req, res) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key() },
       body: JSON.stringify({
-        instances: [{ prompt: text }],
+        instances: [imageInput ? { prompt: text, image: imageInput } : { prompt: text }],
         parameters: { aspectRatio: ratio, durationSeconds: secs, resolution: '720p' },
       }),
     });

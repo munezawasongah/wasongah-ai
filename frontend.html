@@ -252,6 +252,9 @@ textarea.chat-text{resize:none;min-height:40px;max-height:140px;line-height:1.4;
 .vid-item:hover{border-color:var(--cyan);color:var(--text)}
 .vid-item span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:768px){.msg{max-width:92%}}
+.ts-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}
+.ts-card{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:1.5rem;text-align:center;max-width:360px}
+.ts-card p{font-size:13px;color:var(--muted2);margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -285,6 +288,9 @@ textarea.chat-text{resize:none;min-height:40px;max-height:140px;line-height:1.4;
     <button class="tool-btn" onclick="loadTool('image')" style="--accent:var(--orange)">
       <div class="tool-icon" style="--icon-bg:var(--orange-dim)">🖼️</div><span>Image</span>
     </button>
+    <button class="tool-btn" onclick="loadTool('imagegen')" style="--accent:var(--pink)">
+      <div class="tool-icon" style="--icon-bg:var(--pink-dim)">🎨</div><span>Image Creator</span>
+    </button>
     <button class="tool-btn" onclick="loadTool('video')" style="--accent:var(--cyan)">
       <div class="tool-icon" style="--icon-bg:var(--cyan-dim)">🎬</div><span>Video</span>
     </button>
@@ -309,11 +315,38 @@ let chatHistory = [];
 let imgBase64 = null, imgMime = null;
 let currentTool = 'chat';
 
+// ── HUMAN CHECK (optional Cloudflare Turnstile, only active if the server enables it) ──
+let tsKey = null, tsPending = null;
+async function initHuman(){ try{ const c=await (await fetch(`${BACKEND}/api/config`)).json(); tsKey=c.turnstileSiteKey||null }catch{} }
+function ensureVerified(){
+  if(!tsKey) return Promise.resolve();
+  if(tsPending) return tsPending;
+  tsPending = new Promise(resolve=>{
+    const box=document.createElement('div'); box.className='ts-overlay';
+    box.innerHTML='<div class="ts-card"><p>Quick check to keep Wasongah free for everyone</p><div id="tsWidget"></div></div>';
+    document.body.appendChild(box);
+    const go=()=>window.turnstile.render('#tsWidget',{sitekey:tsKey,callback:async t=>{
+      try{ await fetch(`${BACKEND}/api/verify`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})}) }catch{}
+      box.remove(); tsPending=null; resolve();
+    }});
+    if(window.turnstile) go(); else { const sc=document.createElement('script'); sc.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; sc.onload=go; document.head.appendChild(sc); }
+  });
+  return tsPending;
+}
+async function apiFetch(url, opts){
+  let r = await fetch(url, opts);
+  if (r.status === 401) {
+    let j = {}; try{ j = await r.clone().json() }catch{}
+    if (j.error === 'verification_required') { await ensureVerified(); r = await fetch(url, opts); }
+  }
+  return r;
+}
+
 // ── API HELPER ───────────────────────────────────────────────
 async function api(endpoint, method = 'GET', body = null) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(`${BACKEND}${endpoint}`, opts);
+  const res = await apiFetch(`${BACKEND}${endpoint}`, opts);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
   return data;
@@ -332,6 +365,7 @@ const TOOLS = {
   translate: {icon:'🌍',accent:'var(--amber)',  iconBg:'var(--amber-dim)',  title:'Translator',   desc:'Translate between 20+ languages.'},
   code:      {icon:'💻',accent:'var(--pink)',   iconBg:'var(--pink-dim)',   title:'Code Helper',  desc:'Write, explain, and debug code.'},
   image:     {icon:'🖼️',accent:'var(--orange)', iconBg:'var(--orange-dim)', title:'Image',        desc:'Analyze any image.'},
+  imagegen:  {icon:'🎨',accent:'var(--pink)',   iconBg:'var(--pink-dim)',   title:'Image Creator',desc:'Create or edit images from a description.'},
   video:     {icon:'🎬',accent:'var(--cyan)',   iconBg:'var(--cyan-dim)',   title:'Video',        desc:'Turn a description into an animated video.'},
   ideas:     {icon:'🚀',accent:'var(--red)',    iconBg:'var(--red-dim)',    title:'Idea Engine',  desc:'Generate creative ideas.'},
   email:     {icon:'📧',accent:'var(--violet)', iconBg:'var(--violet-dim)', title:'Email Crafter','desc':'Write professional emails.'},
@@ -352,7 +386,7 @@ function loadTool(key) {
       <div><div class="tool-header-title">${t.title}</div><div class="tool-header-desc">${t.desc}</div></div>
     </div>
     <div id="toolBody" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>`;
-  const renders = {chat:renderChat,write:renderWrite,summarize:renderSummarize,translate:renderTranslate,code:renderCode,image:renderImage,video:renderVideo,ideas:renderIdeas,email:renderEmail};
+  const renders = {chat:renderChat,write:renderWrite,summarize:renderSummarize,translate:renderTranslate,code:renderCode,image:renderImage,video:renderVideo,imagegen:renderImageStudio,ideas:renderIdeas,email:renderEmail};
   renders[key]?.(document.getElementById('toolBody'));
 }
 
@@ -550,7 +584,7 @@ async function sendChat(regen) {
   chatBusy=true;chatAbort=new AbortController();updateSendBtn();
   let full='',sources=[],err='';
   try {
-    const res=await fetch(`${BACKEND}/api/stream`,{
+    const res=await apiFetch(`${BACKEND}/api/stream`,{
       method:'POST',headers:{'Content-Type':'application/json'},signal:chatAbort.signal,
       body:JSON.stringify({messages:apiMessages(chat),search:chatPrefs.web,language:chatPrefs.lang})
     });
@@ -671,14 +705,97 @@ function renderIdeas(c) {
 }
 
 
+
+// ── IMAGE CREATOR ────────────────────────────
+let _studioImg = null, _vidImg = null, _lastImage = null, _pendingVideoImage = null;
+function readImageFile(file, cb){
+  if(!file) return;
+  if(file.size>6*1024*1024){ alert('Image is too large (max 6 MB).'); return; }
+  const r=new FileReader();
+  r.onload=()=>cb({name:file.name,mime:file.type||'image/png',data:String(r.result).split(',')[1],url:String(r.result)});
+  r.readAsDataURL(file);
+}
+function renderImageStudio(c) {
+  _studioImg = null;
+  const {input,output}=outputArea(c);
+  const chips=(id,arr,def=0)=>`<div class="options-row" id="${id}">${arr.map((t,i)=>`<button class="opt-chip ${i===def?'active':''}" onclick="selectChip(this,'${id}')">${t}</button>`).join('')}</div>`;
+  input.innerHTML=`
+    <div><label>Describe your image</label>
+      <textarea id="igPrompt" style="min-height:120px" placeholder="e.g. A Maasai-inspired logo for a coffee shop in Dar es Salaam, warm colours, clean lines"></textarea></div>
+    <div><label>Reference photo <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)">(optional: edit or restyle it)</span></label>
+      <div class="upload-zone" id="igZone" onclick="document.getElementById('igFile').click()">
+        <input type="file" id="igFile" accept="image/*" style="display:none" onchange="studioPick(event)">
+        <div>Click to upload a photo</div></div>
+      <div id="igPrevRow" style="display:none;align-items:center;gap:10px;margin-top:8px">
+        <img id="igPrev" class="preview-img" style="max-height:90px;width:auto"/>
+        <button class="copy-btn" onclick="studioClear()">Remove</button></div></div>
+    <div><label>Style</label>${chips('igS',['None','Photorealistic','3D render','Illustration','Anime','Watercolor','Logo / flat','Poster'])}</div>
+    <div><label>Shape</label>${chips('igR',['1:1','16:9','9:16','4:3'])}</div>
+    <div><label>Quality</label>${chips('igQ',['Standard','Pro'])}</div>
+    <button class="run-btn" id="igBtn" onclick="runImageStudio()">Create Image →</button>`;
+  output.innerHTML=`<div class="out-empty"><div style="font-size:2.5rem;opacity:0.3">🎨</div><p>Your image appears here.<br><span style="font-size:12px;color:var(--muted)">Usually 10–30 seconds.</span></p></div>`;
+}
+function studioPick(e){
+  readImageFile(e.target.files[0], img=>{
+    _studioImg=img;
+    document.getElementById('igPrev').src=img.url;
+    document.getElementById('igPrevRow').style.display='flex';
+    document.getElementById('igZone').style.display='none';
+  });
+  e.target.value='';
+}
+function studioClear(){
+  _studioImg=null;
+  const r=document.getElementById('igPrevRow'), z=document.getElementById('igZone');
+  if(r)r.style.display='none'; if(z)z.style.display='';
+}
+async function runImageStudio(){
+  const prompt=document.getElementById('igPrompt').value.trim();
+  const out=document.getElementById('outputContent'), btn=document.getElementById('igBtn');
+  if(!prompt){ out.innerHTML=`<div class="out-result" style="color:#fca5a5">Please describe the image you want.</div>`; return; }
+  const pick=id=>document.querySelector(`#${id} .active`)?.textContent||'';
+  const body={prompt,style:pick('igS'),aspectRatio:pick('igR'),quality:pick('igQ').toLowerCase()};
+  if(_studioImg) body.image={data:_studioImg.data,mime:_studioImg.mime};
+  btn.disabled=true; btn.textContent='Creating…';
+  out.innerHTML=`<div class="out-empty"><div class="spinner"></div><p>Creating your image…</p></div>`;
+  try {
+    const r=await api('/api/image','POST',body);
+    _lastImage={mime:r.mimeType,data:r.data};
+    const ext=(r.mimeType.split('/')[1]||'png').replace('jpeg','jpg');
+    const src=`data:${r.mimeType};base64,${r.data}`;
+    const o=document.getElementById('outputContent'); if(!o) return;
+    o.innerHTML=`<div class="out-result"><img src="${src}" style="width:100%;border-radius:10px;display:block"/>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <a class="copy-btn" download="wasongah-image.${ext}" href="${src}" style="text-decoration:none">Download</a>
+        <button class="copy-btn" onclick="animateLast()">Animate this →</button></div></div>`;
+  } catch(e) {
+    const o=document.getElementById('outputContent');
+    if(o) o.innerHTML=`<div class="out-result" style="color:#fca5a5">⚠️ ${esc(e.message)}</div>`;
+  }
+  const b=document.getElementById('igBtn'); if(b){b.disabled=false;b.textContent='Create Image →';}
+}
+function animateLast(){
+  if(!_lastImage) return;
+  _pendingVideoImage={name:'created image',mime:_lastImage.mime,data:_lastImage.data,url:`data:${_lastImage.mime};base64,${_lastImage.data}`};
+  loadTool('video');
+}
+
 // ── VIDEO ────────────────────────────────────
 let _videoTimer = null;
 function renderVideo(c) {
   const {input,output}=outputArea(c);
   const chips=(id,arr,def=0)=>`<div class="options-row" id="${id}">${arr.map((t,i)=>`<button class="opt-chip ${i===def?'active':''}" onclick="selectChip(this,'${id}')">${t}</button>`).join('')}</div>`;
+  _vidImg=_pendingVideoImage; _pendingVideoImage=null;
   input.innerHTML=`
     <div><label>Describe your video</label>
       <textarea id="vidPrompt" style="min-height:130px" placeholder="e.g. A friendly robot waters plants on a sunny rooftop garden, soft morning light, gentle camera pan"></textarea></div>
+    <div><label>Start from a photo <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)">(optional: animate it)</span></label>
+      <div class="upload-zone" id="vZone" onclick="document.getElementById('vFile').click()">
+        <input type="file" id="vFile" accept="image/*" style="display:none" onchange="vidPick(event)">
+        <div>Click to upload a photo</div></div>
+      <div id="vPrevRow" style="display:none;align-items:center;gap:10px;margin-top:8px">
+        <img id="vPrev" class="preview-img" style="max-height:90px;width:auto"/>
+        <button class="copy-btn" onclick="vidClear()">Remove</button></div></div>
     <div><label>Style</label>${chips('vS',['None','Cinematic','3D animation','Cartoon','Anime','Realistic','Motion graphics'])}</div>
     <div><label>Format</label>${chips('vR',['16:9','9:16'])}</div>
     <div><label>Length</label>${chips('vD',['4s','6s','8s'],2)}</div>
@@ -687,15 +804,26 @@ function renderVideo(c) {
     <div id="vidGallery"></div>`;
   renderGallery();
   output.innerHTML=`<div class="out-empty"><div style="font-size:2.5rem;opacity:0.3">🎬</div><p>Your video appears here.<br><span style="font-size:12px;color:var(--muted)">Generation takes 1–3 minutes.</span></p></div>`;
+  if(_vidImg) showVidPrev();
 }
 
+
+function showVidPrev(){
+  const p=document.getElementById('vPrev'); if(!p||!_vidImg) return;
+  p.src=_vidImg.url; document.getElementById('vPrevRow').style.display='flex'; document.getElementById('vZone').style.display='none';
+}
+function vidPick(e){ readImageFile(e.target.files[0], img=>{ _vidImg=img; showVidPrev(); }); e.target.value=''; }
+function vidClear(){ _vidImg=null; const r=document.getElementById('vPrevRow'),z=document.getElementById('vZone'); if(r)r.style.display='none'; if(z)z.style.display=''; }
+
 async function runVideo() {
-  const prompt=document.getElementById('vidPrompt').value.trim();
+  let prompt=document.getElementById('vidPrompt').value.trim();
   const out=document.getElementById('outputContent');
-  if(!prompt){out.innerHTML=`<div class="out-result" style="color:#fca5a5">Please describe the video you want.</div>`;return;}
+  if(!prompt && !_vidImg){out.innerHTML=`<div class="out-result" style="color:#fca5a5">Please describe the video you want.</div>`;return;}
+  if(!prompt) prompt='Bring this image to life with natural, gentle motion.';
   const btn=document.getElementById('vidBtn');
   const pick=id=>document.querySelector(`#${id} .active`)?.textContent||'';
   const body={prompt,style:pick('vS'),aspectRatio:pick('vR'),duration:parseInt(pick('vD')),quality:pick('vQ').toLowerCase()};
+  if(_vidImg) body.image={data:_vidImg.data,mime:_vidImg.mime};
   clearTimeout(_videoTimer);
   btn.disabled=true; btn.textContent='Generating…';
   const started=Date.now();
@@ -770,6 +898,7 @@ async function runTool(tool, body, requiredField) {
 }
 
 // ── INIT ─────────────────────────────────────
+initHuman();
 loadTool('chat');
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('/sw.js').catch(()=>{});
 </script>
