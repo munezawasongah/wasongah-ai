@@ -1,6 +1,6 @@
 // Google Gemini REST client (no SDK needed, uses Node 18+ global fetch)
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
-const model = () => process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const model = () => process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
 function key() {
   const k = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;

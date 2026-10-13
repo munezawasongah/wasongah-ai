@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>WasongahAI — Your AI Workspace</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -185,6 +185,29 @@ select option{background:var(--surface2)}
 ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:10px}
 
 @media(max-width:768px){.sidebar{width:56px}.sidebar-label,.tool-btn span,.tool-cost,.sidebar-buy-btn{display:none}.tool-icon{margin:auto}.workspace{flex-direction:column}.input-col{border-right:none;border-bottom:1px solid var(--border)}}
+
+/* ── LAYOUT FIX: scrolling + mobile viewport ── */
+html,body{height:100%}
+body{height:100vh;height:100dvh;min-height:0}
+.shell,.main,.workspace,.output-col,.input-col,.chat-wrapper,#toolBody,#mainArea,.chat-msgs,.output-content{min-height:0;min-width:0}
+.main{overflow:hidden}
+.chat-wrapper{height:100%}
+.chat-msgs{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.chat-input-bar{flex-shrink:0;padding-bottom:calc(1rem + env(safe-area-inset-bottom,0px))}
+.chat-text{min-width:0}
+@media(max-width:768px){
+  .sidebar{width:56px;padding:.75rem .4rem}
+  .tool-header{padding:.75rem 1rem}
+  .tool-header-desc{display:none}
+  .workspace{flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .input-col{flex:none;overflow:visible}
+  .output-col{flex:none;min-height:55dvh}
+  .output-content{overflow:visible}
+  .chat-text,textarea,input[type=text],select{font-size:16px}
+  .chat-input-bar{padding:.6rem .75rem calc(.6rem + env(safe-area-inset-bottom,0px))}
+  .chat-msgs{padding:.9rem}
+  .chat-send{width:44px;height:44px}
+}
 </style>
 </head>
 <body>

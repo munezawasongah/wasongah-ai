@@ -4,7 +4,7 @@ Required environment variable:
 - `GEMINI_API_KEY` (create one free at https://aistudio.google.com/apikey)
 
 Optional:
-- `GEMINI_MODEL` (default `gemini-2.5-flash`)
+- `GEMINI_MODEL` (default `gemini-3.8-flash`)
 - `FRONTEND_URL` (default `*`)
 - `MAX_TOKENS` (default 4096)
 
