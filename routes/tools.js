@@ -45,6 +45,26 @@ const TOOL_CONFIGS = {
       return `Generate ${b.count||'10'} ${b.type||'Business Ideas'} for: "${b.topic}". Creativity: ${b.creativity||'Balanced'}. Number each with a name and 1-2 sentence description.`;
     }
   },
+  document: {
+    system: 'You are an expert professional document writer. Produce complete, polished, ready-to-use documents in clean Markdown (use # headings, bullet lists and tables where helpful). Never invent personal facts: where details are missing, use clear [placeholders] in square brackets. Output only the document, with no commentary before or after it.',
+    buildPrompt: (b) => {
+      if (!b.details) throw new Error('details are required');
+      const guides = {
+        'CV / Resume': 'Create a one-to-two page CV: name and contact line, professional summary, experience (reverse chronological, achievement bullets with measurable results), education, skills, and optional certifications. Tailor it to the target role if one is given.',
+        'Cover Letter': 'Write a concise, persuasive cover letter (under 350 words), properly addressed and tailored to the role.',
+        'Presentation Outline': 'Create a slide-by-slide outline. For each slide give a title, 3-5 bullet points and a one-line speaker note. Start with a title slide and end with a clear call to action.',
+        'Meeting Minutes': 'Turn the notes into minutes: meeting details, attendees, topics discussed, decisions made, an action items table (owner, task, due date) and the next meeting.',
+        'Business Proposal': 'Write a proposal with: executive summary, problem, proposed solution, scope and deliverables, timeline, pricing or budget (use placeholders if unknown), terms and next steps.',
+        'Lesson Plan': 'Create a lesson plan with: title, level, duration, learning objectives, materials, a step-by-step lesson with timings, activities, assessment, homework and differentiation ideas.',
+        'Quiz / Worksheet': 'Create a worksheet with a mix of question types, then an answer key at the end.',
+        'Report': 'Write a report with: title, executive summary, background, findings, analysis, recommendations and conclusion.',
+      };
+      const type = guides[b.type] ? b.type : 'Report';
+      const lang = b.language && b.language !== 'Auto' ? `Write the document in ${String(b.language).slice(0, 30)}.\n` : '';
+      return `${guides[type]}\n\nTone: ${b.tone || 'Professional'}.\n${lang}\nDetails provided by the user:\n${b.details}` +
+        (b.extra ? `\n\nAdditional context (job description, audience, requirements):\n${b.extra}` : '');
+    }
+  },
   email: {
     system: 'You are an expert email copywriter. Write effective, professional emails.',
     buildPrompt: (b) => {

@@ -255,6 +255,24 @@ textarea.chat-text{resize:none;min-height:40px;max-height:140px;line-height:1.4;
 .ts-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}
 .ts-card{background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:1.5rem;text-align:center;max-width:360px}
 .ts-card p{font-size:13px;color:var(--muted2);margin-bottom:12px}
+
+/* ── MARKDOWN + VOICE + DOCUMENTS ── */
+.md{white-space:normal}
+.md>*:first-child{margin-top:0}
+.md p{margin:0 0 .7em}.md p:last-child{margin-bottom:0}
+.md h1,.md h2,.md h3,.md h4{font-family:var(--display);margin:1em 0 .4em;line-height:1.3}
+.md h1{font-size:1.35em}.md h2{font-size:1.2em}.md h3{font-size:1.07em}.md h4{font-size:1em}
+.msg-bubble.md h1,.msg-bubble.md h2{font-size:1.1em}
+.md ul,.md ol{margin:.4em 0 .8em 1.3em}.md li{margin:.2em 0}
+.md table{border-collapse:collapse;margin:.6em 0;font-size:.92em;display:block;overflow-x:auto;max-width:100%}
+.md th,.md td{border:1px solid var(--border2);padding:6px 10px;text-align:left}.md th{background:var(--surface2)}
+.md blockquote{border-left:3px solid var(--cyan);margin:.6em 0;padding:.2em .9em;color:var(--muted2)}
+.md hr{border:none;border-top:1px solid var(--border2);margin:1em 0}
+.md a{color:var(--cyan)}
+.chat-attach.rec{background:#7f1d1d;border-color:#ef4444;animation:micpulse 1.1s ease-in-out infinite}
+@keyframes micpulse{50%{box-shadow:0 0 0 6px rgba(239,68,68,.25)}}
+.doc-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.doc-page.editing{outline:2px dashed var(--cyan);outline-offset:6px;border-radius:4px}
 </style>
 </head>
 <body>
@@ -293,6 +311,9 @@ textarea.chat-text{resize:none;min-height:40px;max-height:140px;line-height:1.4;
     </button>
     <button class="tool-btn" onclick="loadTool('video')" style="--accent:var(--cyan)">
       <div class="tool-icon" style="--icon-bg:var(--cyan-dim)">🎬</div><span>Video</span>
+    </button>
+    <button class="tool-btn" onclick="loadTool('document')" style="--accent:var(--green)">
+      <div class="tool-icon" style="--icon-bg:var(--green-dim)">📄</div><span>Documents</span>
     </button>
     <button class="tool-btn" onclick="loadTool('ideas')" style="--accent:var(--red)">
       <div class="tool-icon" style="--icon-bg:var(--red-dim)">🚀</div><span>Idea Engine</span>
@@ -367,6 +388,7 @@ const TOOLS = {
   image:     {icon:'🖼️',accent:'var(--orange)', iconBg:'var(--orange-dim)', title:'Image',        desc:'Analyze any image.'},
   imagegen:  {icon:'🎨',accent:'var(--pink)',   iconBg:'var(--pink-dim)',   title:'Image Creator',desc:'Create or edit images from a description.'},
   video:     {icon:'🎬',accent:'var(--cyan)',   iconBg:'var(--cyan-dim)',   title:'Video',        desc:'Turn a description into an animated video.'},
+  document:  {icon:'📄',accent:'var(--green)',  iconBg:'var(--green-dim)',  title:'Documents',    desc:'CVs, letters, outlines, minutes, proposals and more.'},
   ideas:     {icon:'🚀',accent:'var(--red)',    iconBg:'var(--red-dim)',    title:'Idea Engine',  desc:'Generate creative ideas.'},
   email:     {icon:'📧',accent:'var(--violet)', iconBg:'var(--violet-dim)', title:'Email Crafter','desc':'Write professional emails.'},
 };
@@ -386,7 +408,7 @@ function loadTool(key) {
       <div><div class="tool-header-title">${t.title}</div><div class="tool-header-desc">${t.desc}</div></div>
     </div>
     <div id="toolBody" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>`;
-  const renders = {chat:renderChat,write:renderWrite,summarize:renderSummarize,translate:renderTranslate,code:renderCode,image:renderImage,video:renderVideo,imagegen:renderImageStudio,ideas:renderIdeas,email:renderEmail};
+  const renders = {chat:renderChat,write:renderWrite,summarize:renderSummarize,translate:renderTranslate,code:renderCode,image:renderImage,video:renderVideo,imagegen:renderImageStudio,document:renderDocument,ideas:renderIdeas,email:renderEmail};
   renders[key]?.(document.getElementById('toolBody'));
 }
 
@@ -411,15 +433,39 @@ function outputArea(container) {
 
 function showLoading(el,text='Processing...'){el.innerHTML=`<div class="out-loading"><div class="loader-ring"></div><div>${text}</div></div>`}
 function showResult(el,text){
-  el.innerHTML=`<div class="out-result">${formatText(text)}</div>`;
+  el.innerHTML=`<div class="out-result md">${formatText(text)}</div>`;
   window._lastOutput=text;
+}
+function mdInline(s){
+  return s.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/(^|[\s(])\*([^*\s][^*\n]*?)\*(?=[\s).,;:!?]|$)/g,'$1<em>$2</em>')
+    .replace(/`([^`\n]+)`/g,'<code class="inline">$1</code>')
+    .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)"']+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 }
 function formatText(t){
   const e=x=>x.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  return String(t).split(/```[\w+#.-]*\n?/).map((p,i)=>i%2
-    ? `<div class="code-block">${e(p.replace(/\n$/,''))}</div>`
-    : e(p).replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>').replace(/`([^`\n]+)`/g,'<code class="inline">$1</code>').replace(/\n/g,'<br>')
-  ).join('');
+  return String(t).split(/```[\w+#.-]*\n?/).map((seg,si)=>{
+    if(si%2) return `<div class="code-block">${e(seg.replace(/\n$/,''))}</div>`;
+    const lines=e(seg).split('\n'); let out='',i=0,para=[],m;
+    const flush=()=>{ if(para.length){ out+=`<p>${para.map(mdInline).join('<br>')}</p>`; para=[]; } };
+    const cells=l=>l.trim().replace(/^\||\|$/g,'').split('|').map(c=>c.trim());
+    while(i<lines.length){
+      const L=lines[i];
+      if(!L.trim()){ flush(); i++; continue; }
+      if((m=/^(#{1,4})\s+(.*)$/.exec(L))){ flush(); out+=`<h${m[1].length}>${mdInline(m[2])}</h${m[1].length}>`; i++; continue; }
+      if(/^\s*([-*_])\1{2,}\s*$/.test(L)){ flush(); out+='<hr>'; i++; continue; }
+      if(/^\s*[-*•]\s+/.test(L)){ flush(); let li=''; while(i<lines.length&&/^\s*[-*•]\s+/.test(lines[i])){ li+=`<li>${mdInline(lines[i].replace(/^\s*[-*•]\s+/,''))}</li>`; i++; } out+=`<ul>${li}</ul>`; continue; }
+      if(/^\s*\d+[.)]\s+/.test(L)){ flush(); let li=''; while(i<lines.length&&/^\s*\d+[.)]\s+/.test(lines[i])){ li+=`<li>${mdInline(lines[i].replace(/^\s*\d+[.)]\s+/,''))}</li>`; i++; } out+=`<ol>${li}</ol>`; continue; }
+      if(/^\s*&gt;\s?/.test(L)){ flush(); let q=[]; while(i<lines.length&&/^\s*&gt;\s?/.test(lines[i])){ q.push(mdInline(lines[i].replace(/^\s*&gt;\s?/,''))); i++; } out+=`<blockquote>${q.join('<br>')}</blockquote>`; continue; }
+      if(/^\s*\|.*\|\s*$/.test(L) && i+1<lines.length && /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(lines[i+1])){
+        flush(); const head=cells(L); i+=2; let rows='';
+        while(i<lines.length&&/^\s*\|.*\|\s*$/.test(lines[i])){ rows+=`<tr>${cells(lines[i]).map(c=>`<td>${mdInline(c)}</td>`).join('')}</tr>`; i++; }
+        out+=`<table><thead><tr>${head.map(c=>`<th>${mdInline(c)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`; continue;
+      }
+      para.push(L); i++;
+    }
+    flush(); return out;
+  }).join('');
 }
 function copyOutput(){if(window._lastOutput)navigator.clipboard.writeText(window._lastOutput).then(()=>alert('Copied!'))}
 function selectChip(el,gid){document.querySelectorAll(`#${gid} .opt-chip`).forEach(c=>c.classList.remove('active'));el.classList.add('active')}
@@ -429,11 +475,11 @@ const CHAT_KEY = 'wasongah_chats_v1', PREF_KEY = 'wasongah_chat_prefs_v1';
 const LANGS = ['Auto','English','Kiswahili','Français','Español','Português','Deutsch','العربية','中文','हिन्दी'];
 let chatsLoaded = false;
 let chats = [], currentChat = null, chatAttach = null, chatAbort = null, chatBusy = false;
-let chatPrefs = {web:false, lang:'Auto'};
+let chatPrefs = {web:false, lang:'Auto', auto:false};
 
 function loadChats(){
   try{chats=JSON.parse(localStorage.getItem(CHAT_KEY)||'[]')}catch{chats=[]}
-  try{chatPrefs=Object.assign({web:false,lang:'Auto'},JSON.parse(localStorage.getItem(PREF_KEY)||'{}'))}catch{}
+  try{chatPrefs=Object.assign({web:false,lang:'Auto',auto:false},JSON.parse(localStorage.getItem(PREF_KEY)||'{}'))}catch{}
 }
 function saveChats(){
   chats.sort((a,b)=>b.updated-a.updated);
@@ -452,6 +498,7 @@ function renderChat(container) {
         <button class="chat-top-btn" onclick="toggleHistory()">☰ History</button>
         <button class="chat-top-btn" onclick="newChat()">＋ New chat</button>
         <span style="flex:1"></span>
+        <button class="chat-top-btn" id="autoBtn" onclick="toggleAuto()" title="Read replies aloud automatically">🔊 Auto-read</button>
         <button class="chat-top-btn" id="webBtn" onclick="toggleWeb()" title="Use Google Search for up-to-date answers">🌐 Web</button>
         <select id="chatLang" onchange="setLang(this.value)" title="Reply language">${LANGS.map(l=>`<option ${l===chatPrefs.lang?'selected':''}>${l}</option>`).join('')}</select>
       </div>
@@ -461,11 +508,12 @@ function renderChat(container) {
       <div class="chat-input-bar">
         <input type="file" id="chatFile" style="display:none" accept="image/*,application/pdf,text/plain,.md,.csv,.json,.txt" onchange="pickChatFile(event)">
         <button class="chat-attach" onclick="$('chatFile').click()" title="Attach an image, PDF or text file">📎</button>
+        <button class="chat-attach" id="micBtn" onclick="toggleMic()" title="Speak instead of typing">🎤</button>
         <textarea class="chat-text" id="chatIn" rows="1" placeholder="Ask anything..." oninput="autosizeChat()" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatAction()}"></textarea>
         <button class="chat-send" id="chatSendBtn" onclick="chatAction()">↑</button>
       </div>
     </div>`;
-  updateWebBtn(); renderMessages(); updateSendBtn();
+  updateWebBtn(); updateAutoBtn(); renderMessages(); updateSendBtn();
 }
 
 function autosizeChat(){const t=$('chatIn');if(!t)return;t.style.height='auto';t.style.height=Math.min(t.scrollHeight,140)+'px'}
@@ -520,9 +568,9 @@ function msgHtml(m,i,last){
     return `<div class="msg user"><div class="msg-name">You</div><div class="msg-bubble">${esc(m.text)}${files}</div></div>`;
   }
   const src=(m.sources||[]).map(s=>{let h='';try{h=new URL(s.uri).hostname.replace(/^www\./,'')}catch{}return `<a href="${esc(s.uri)}" target="_blank" rel="noopener noreferrer">${esc(s.title||h)}</a>`}).join('');
-  return `<div class="msg ai"><div class="msg-name">WasongahAI</div><div class="msg-bubble">${formatText(m.text)}</div>`
+  return `<div class="msg ai"><div class="msg-name">WasongahAI</div><div class="msg-bubble md">${formatText(m.text)}</div>`
     +(src?`<div class="src-list"><span>Sources</span>${src}</div>`:'')
-    +`<div class="msg-actions"><button onclick="copyMsg(${i},this)">Copy</button>${last?`<button onclick="sendChat(true)">Regenerate</button>`:''}</div></div>`;
+    +`<div class="msg-actions"><button onclick="copyMsg(${i},this)">Copy</button><button class="listen-btn" onclick="listenMsg(${i},this)">🔊 Listen</button>${last?`<button onclick="sendChat(true)">Regenerate</button>`:''}</div></div>`;
 }
 function renderMessages(){
   const box=$('chatMsgs');if(!box)return;
@@ -577,7 +625,7 @@ async function sendChat(regen) {
 
   let box=$('chatMsgs');
   const live=document.createElement('div');live.className='msg ai';
-  live.innerHTML=`<div class="msg-name">WasongahAI</div><div class="msg-bubble" style="color:var(--muted2)">▋</div>`;
+  live.innerHTML=`<div class="msg-name">WasongahAI</div><div class="msg-bubble md" style="color:var(--muted2)">▋</div>`;
   box.appendChild(live);box.scrollTop=box.scrollHeight;
   const bubble=live.querySelector('.msg-bubble');
 
@@ -608,11 +656,166 @@ async function sendChat(regen) {
   if(full){
     chat.messages.push({role:'assistant',text:full,sources});
     chat.updated=Date.now();saveChats();
-    if(currentChat===chat&&$('chatMsgs'))renderMessages();
+    if(currentChat===chat&&$('chatMsgs')){renderMessages();autoListen();}
     if(err&&currentChat===chat&&$('chatMsgs'))$('chatMsgs').insertAdjacentHTML('beforeend',`<div class="msg ai"><div class="msg-bubble" style="color:#fca5a5">⚠️ ${esc(err)}</div></div>`);
   } else if(live.isConnected){
     live.innerHTML=`<div class="msg-name">WasongahAI</div><div class="msg-bubble" style="color:#fca5a5">⚠️ ${esc(err||'Stopped.')}</div><div class="msg-actions"><button onclick="sendChat(true)">Try again</button></div>`;
   }
+}
+
+// ── VOICE ────────────────────────────────────
+const LANG_CODES = {'Kiswahili':'sw-KE','English':'en-US','Français':'fr-FR','Español':'es-ES','Português':'pt-PT','Deutsch':'de-DE','العربية':'ar-SA','中文':'zh-CN','हिन्दी':'hi-IN'};
+let rec = null, recChunks = [], recTimer = null, recStream = null;
+
+function setMic(state){
+  const b=$('micBtn'); if(!b) return;
+  b.disabled = state==='busy';
+  b.classList.toggle('rec', state==='rec');
+  b.textContent = state==='rec' ? '⏹' : state==='busy' ? '…' : '🎤';
+  b.title = state==='rec' ? 'Tap to stop' : 'Speak instead of typing';
+}
+async function toggleMic(){
+  if(rec && rec.state==='recording'){ rec.stop(); return; }
+  if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder){ alert('Voice input is not supported in this browser.'); return; }
+  try{ recStream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch{ alert('Please allow microphone access to use voice input.'); return; }
+  recChunks=[]; rec=new MediaRecorder(recStream);
+  rec.ondataavailable=e=>{ if(e.data.size) recChunks.push(e.data); };
+  rec.onstop=async()=>{
+    clearTimeout(recTimer); recStream.getTracks().forEach(t=>t.stop());
+    setMic('busy');
+    try{
+      const wav = await blobToWav16k(new Blob(recChunks,{type:rec.mimeType||'audio/webm'}));
+      const r = await api('/api/transcribe','POST',{audio:{data:wav,mime:'audio/wav'},language:chatPrefs.lang});
+      const t=$('chatIn');
+      if(t && r.text){ t.value=(t.value?t.value+' ':'')+r.text; autosizeChat(); t.focus(); }
+      else if(!r.text) alert('I could not hear any speech. Please try again.');
+    }catch(e){ alert('Voice input failed: '+e.message); }
+    setMic('idle');
+  };
+  rec.start(); setMic('rec');
+  recTimer=setTimeout(()=>{ if(rec.state==='recording') rec.stop(); },60000);
+}
+
+function encodeWav16(pcm){
+  const out=new ArrayBuffer(44+pcm.length*2), v=new DataView(out);
+  const w=(o,s)=>{ for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
+  w(0,'RIFF'); v.setUint32(4,36+pcm.length*2,true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true);
+  v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,16000,true); v.setUint32(28,32000,true);
+  v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,'data'); v.setUint32(40,pcm.length*2,true);
+  for(let i=0;i<pcm.length;i++){ const x=Math.max(-1,Math.min(1,pcm[i])); v.setInt16(44+i*2, x<0?x*0x8000:x*0x7fff, true); }
+  return new Uint8Array(out);
+}
+async function blobToWav16k(blob){
+  const AC=window.AudioContext||window.webkitAudioContext;
+  const ac=new AC(); const audio=await ac.decodeAudioData(await blob.arrayBuffer()); if(ac.close) ac.close();
+  const off=new OfflineAudioContext(1,Math.max(1,Math.ceil(audio.duration*16000)),16000);
+  const src=off.createBufferSource(); src.buffer=audio; src.connect(off.destination); src.start();
+  const bytes=encodeWav16((await off.startRendering()).getChannelData(0));
+  let bin=''; for(let i=0;i<bytes.length;i+=0x8000) bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
+  return btoa(bin);
+}
+
+let _audio = null, _listenBtn = null;
+function stopListen(){
+  if(_audio){ _audio.pause(); _audio=null; }
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+  if(_listenBtn){ _listenBtn.textContent='🔊 Listen'; _listenBtn=null; }
+}
+function plainText(t){ return String(t).replace(/```[\s\S]*?```/g,' ').replace(/[*_`#>|]/g,'').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1'); }
+async function listenMsg(i, btn){
+  if(_listenBtn===btn){ stopListen(); return; }
+  stopListen(); _listenBtn=btn; btn.textContent='… Loading';
+  const text=currentChat?.messages[i]?.text||'';
+  try{
+    const r=await api('/api/speak','POST',{text});
+    if(_listenBtn!==btn) return;
+    const a=new Audio(`data:${r.mimeType};base64,${r.data}`);
+    _audio=a; a.onended=stopListen; a.onerror=stopListen;
+    btn.textContent='■ Stop'; await a.play();
+  }catch(e){
+    if(_listenBtn!==btn) return;
+    if('speechSynthesis' in window){
+      const u=new SpeechSynthesisUtterance(plainText(text));
+      if(LANG_CODES[chatPrefs.lang]) u.lang=LANG_CODES[chatPrefs.lang];
+      u.onend=stopListen; btn.textContent='■ Stop'; speechSynthesis.speak(u);
+    } else { stopListen(); alert('Could not read aloud: '+e.message); }
+  }
+}
+function toggleAuto(){ chatPrefs.auto=!chatPrefs.auto; savePrefs(); updateAutoBtn(); if(!chatPrefs.auto) stopListen(); }
+function updateAutoBtn(){ const b=$('autoBtn'); if(b) b.classList.toggle('on',!!chatPrefs.auto); }
+function autoListen(){
+  if(!chatPrefs.auto) return;
+  const btns=document.querySelectorAll('.msg.ai .listen-btn'); const b=btns[btns.length-1];
+  if(b) b.click();
+}
+
+// ── DOCUMENTS ────────────────────────────────
+const DOC_HINTS = {
+  'CV / Resume':'Your name, contact details, work history, education, skills… paste anything, even rough notes.',
+  'Cover Letter':'Who you are, the role and company, and why you fit.',
+  'Presentation Outline':'Topic, audience, how long you have, and the key points to cover.',
+  'Meeting Minutes':'Paste your raw meeting notes, who attended, and any decisions or tasks mentioned.',
+  'Business Proposal':'Your business, the client, the problem, what you will deliver, and the timeline.',
+  'Lesson Plan':'Subject, class level, topic, lesson length and any learning goals.',
+  'Quiz / Worksheet':'Topic, level, number of questions and the question types you prefer.',
+  'Report':'Topic, purpose, audience and the information or data to include.'
+};
+function renderDocument(c){
+  const {input,output}=outputArea(c);
+  const chips=(id,arr,def=0,cb='')=>`<div class="options-row" id="${id}">${arr.map((t,i)=>`<button class="opt-chip ${i===def?'active':''}" onclick="selectChip(this,'${id}');${cb}">${t}</button>`).join('')}</div>`;
+  input.innerHTML=`
+    <div><label>Document type</label>${chips('dT',Object.keys(DOC_HINTS),0,'docHint()')}</div>
+    <div><label>Your details</label><textarea id="docDetails" style="min-height:150px" placeholder="${DOC_HINTS['CV / Resume']}"></textarea></div>
+    <div><label>Extra context <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)">(optional: job ad, audience, requirements)</span></label><textarea id="docExtra" style="min-height:80px"></textarea></div>
+    <div><label>Tone</label>${chips('dTone',['Professional','Friendly','Concise','Formal'])}</div>
+    <button class="run-btn" id="docBtn" onclick="runDocument()">Create Document →</button>`;
+  output.innerHTML=`<div class="out-empty"><div style="font-size:2.5rem;opacity:0.3">📄</div><p>Your document appears here.<br><span style="font-size:12px;color:var(--muted)">You can edit it, then download as Word or save as PDF.</span></p></div>`;
+}
+function docHint(){ const t=document.querySelector('#dT .active')?.textContent; const el=document.getElementById('docDetails'); if(el&&DOC_HINTS[t]) el.placeholder=DOC_HINTS[t]; }
+async function runDocument(){
+  const details=document.getElementById('docDetails').value.trim();
+  const out=document.getElementById('outputContent'), btn=document.getElementById('docBtn');
+  if(!details){ out.innerHTML=`<div class="out-result" style="color:#fca5a5">Please add your details first.</div>`; return; }
+  const pick=id=>document.querySelector(`#${id} .active`)?.textContent||'';
+  btn.disabled=true; btn.textContent='Writing…';
+  out.innerHTML=`<div class="out-empty"><div class="spinner"></div><p>Writing your document…</p></div>`;
+  try{
+    const r=await callTool('document',{type:pick('dT'),tone:pick('dTone'),details,extra:document.getElementById('docExtra').value.trim(),language:chatPrefs.lang});
+    window._docType=pick('dT');
+    const o=document.getElementById('outputContent'); if(!o) return;
+    o.innerHTML=`<div class="doc-bar">
+        <button class="copy-btn" onclick="docCopy(this)">Copy</button>
+        <button class="copy-btn" id="docEditBtn" onclick="docEdit()">Edit</button>
+        <button class="copy-btn" onclick="docWord()">Download Word</button>
+        <button class="copy-btn" onclick="docPrint()">Print / Save PDF</button></div>
+      <div class="out-result md doc-page" id="docPreview">${formatText(r.text)}</div>`;
+  }catch(e){
+    const o=document.getElementById('outputContent');
+    if(o) o.innerHTML=`<div class="out-result" style="color:#fca5a5">⚠️ ${esc(e.message)}</div>`;
+  }
+  const b=document.getElementById('docBtn'); if(b){b.disabled=false;b.textContent='Create Document →';}
+}
+function docEdit(){
+  const p=document.getElementById('docPreview'), b=document.getElementById('docEditBtn'); if(!p) return;
+  const on=p.isContentEditable!==true;
+  p.contentEditable=on?'true':'false'; p.classList.toggle('editing',on); b.textContent=on?'Done editing':'Edit';
+  if(on) p.focus();
+}
+function docCopy(btn){ const p=document.getElementById('docPreview'); if(p) navigator.clipboard.writeText(p.innerText).then(()=>{ btn.textContent='Copied'; setTimeout(()=>btn.textContent='Copy',1200); }); }
+const DOC_CSS='body{font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5;color:#111;max-width:760px;margin:0 auto;padding:24px}h1{font-size:20pt;margin:0 0 6pt}h2{font-size:14pt;margin:14pt 0 4pt;border-bottom:1px solid #ccc;padding-bottom:2pt}h3{font-size:12pt;margin:10pt 0 3pt}h4{font-size:11pt}p{margin:0 0 6pt}ul,ol{margin:0 0 6pt 18pt}table{border-collapse:collapse;width:100%;margin:6pt 0}th,td{border:1px solid #999;padding:4pt 6pt;text-align:left;font-size:10.5pt}th{background:#eee}blockquote{border-left:3px solid #999;margin:6pt 0;padding-left:10pt;color:#444}';
+function docHtml(){ const p=document.getElementById('docPreview'); return p?p.innerHTML:''; }
+function docWord(){
+  const name=(window._docType||'document').replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(window._docType||'Document')}</title><style>${DOC_CSS}</style></head><body>${docHtml()}</body></html>`;
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\ufeff',html],{type:'application/msword'})); a.download=name+'.doc';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function docPrint(){
+  const f=document.createElement('iframe'); f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  document.body.appendChild(f);
+  f.contentDocument.open(); f.contentDocument.write(`<html><head><meta charset="utf-8"><title>${esc(window._docType||'Document')}</title><style>${DOC_CSS}</style></head><body>${docHtml()}</body></html>`); f.contentDocument.close();
+  setTimeout(()=>{ f.contentWindow.focus(); f.contentWindow.print(); setTimeout(()=>f.remove(),2000); },300);
 }
 
 // ── WRITER ───────────────────────────────────

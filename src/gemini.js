@@ -44,8 +44,8 @@ function extractText(data) {
 }
 
 // Non-streaming
-async function generate({ messages, system }) {
-  const res = await fetch(`${BASE}/${model()}:generateContent`, {
+async function generate({ messages, system, model: modelOverride }) {
+  const res = await fetch(`${BASE}/${modelOverride || model()}:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key() },
     body: JSON.stringify(buildBody(messages, system)),
@@ -93,4 +93,4 @@ async function stream({ messages, system, onText, onSources, search, signal }) {
   if (onSources && sources.size) onSources([...sources].slice(0, 6).map(([uri, title]) => ({ uri, title })));
 }
 
-module.exports = { generate, stream };
+module.exports = { generate, stream, apiKey: key };

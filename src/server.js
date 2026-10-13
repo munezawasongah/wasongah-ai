@@ -10,6 +10,7 @@ const toolsRouter  = require('../routes/tools');
 const streamRouter = require('../routes/stream');
 const videoRouter  = require('../routes/video');
 const imageRouter  = require('../routes/image');
+const voiceRouter  = require('../routes/voice');
 const human        = require('./human');
 const { errorHandler } = require('../middleware/errorHandler');
 
@@ -47,6 +48,7 @@ app.use('/api/tools',  toolsRouter);
 app.use('/api/stream', streamRouter);
 app.use('/api/video',  videoRouter);
 app.use('/api/image',  imageRouter);
+app.use('/api',        voiceRouter);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
