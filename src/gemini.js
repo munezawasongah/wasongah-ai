@@ -16,12 +16,13 @@ function toContents(messages) {
   }));
 }
 
-function buildBody(messages, system) {
+function buildBody(messages, system, search) {
   const body = {
     contents: toContents(messages),
     generationConfig: { maxOutputTokens: parseInt(process.env.MAX_TOKENS) || 4096 },
   };
   if (system) body.systemInstruction = { parts: [{ text: system }] };
+  if (search) body.tools = [{ google_search: {} }];
   return body;
 }
 
@@ -54,11 +55,11 @@ async function generate({ messages, system }) {
 }
 
 // Streaming: calls onText(chunk) for each piece; resolves when finished
-async function stream({ messages, system, onText, signal }) {
+async function stream({ messages, system, onText, onSources, search, signal }) {
   const res = await fetch(`${BASE}/${model()}:streamGenerateContent?alt=sse`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key() },
-    body: JSON.stringify(buildBody(messages, system)),
+    body: JSON.stringify(buildBody(messages, system, search)),
     signal,
   });
   if (!res.ok) await failFrom(res);
@@ -66,6 +67,7 @@ async function stream({ messages, system, onText, signal }) {
   const decoder = new TextDecoder();
   let buf = '';
   let sent = false;
+  const sources = new Map();
   for await (const chunk of res.body) {
     buf += decoder.decode(chunk, { stream: true });
     const lines = buf.split('\n');
@@ -75,14 +77,20 @@ async function stream({ messages, system, onText, signal }) {
       const json = line.slice(5).trim();
       if (!json || json === '[DONE]') continue;
       try {
-        const text = extractText(JSON.parse(json));
+        const data = JSON.parse(json);
+        const text = extractText(data);
         if (text) { sent = true; onText(text); }
+        for (const ch of data.candidates?.[0]?.groundingMetadata?.groundingChunks || []) {
+          const w = ch.web;
+          if (w?.uri && /^https?:\/\//.test(w.uri) && !sources.has(w.uri)) sources.set(w.uri, w.title || w.uri);
+        }
       } catch (e) {
         if (e.message.startsWith('Blocked')) throw e;
       }
     }
   }
   if (!sent) throw new Error('Gemini returned an empty response');
+  if (onSources && sources.size) onSources([...sources].slice(0, 6).map(([uri, title]) => ({ uri, title })));
 }
 
 module.exports = { generate, stream };

@@ -14,3 +14,8 @@ No Supabase, Stripe or Anthropic configuration is needed. The app is open to eve
 Uses Google Veo through the Gemini API. This needs billing enabled on the Google Cloud project behind `GEMINI_API_KEY` (no free tier for video).
 - `VIDEO_DAILY_BUDGET_USD` (default 10): combined estimated spend per day across all users; once reached, new videos are refused until the next UTC day (or a restart).
 - `VEO_MODEL_LITE`, `VEO_MODEL_FAST`, `VEO_MODEL_STANDARD`: override model names if Google renames them.
+
+## Chat features
+- Saved chats, language setting and the Web toggle are stored in the user's browser (localStorage); nothing is kept on the server.
+- The Web toggle uses Gemini's Google Search grounding. Google may bill grounded requests beyond its free daily quota; check the Gemini API pricing page.
+- Installable app: `public/` holds the manifest, service worker and icons.

@@ -3,7 +3,7 @@ const router = express.Router();
 const { stream } = require('../src/gemini');
 
 router.post('/', async (req, res) => {
-  const { messages, system } = req.body;
+  const { messages, system, search, language } = req.body;
   if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'messages required' });
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -19,8 +19,11 @@ router.post('/', async (req, res) => {
   try {
     await stream({
       messages,
-      system: system || 'You are WasongahAI, a helpful and smart AI assistant.',
+      system: (system || 'You are WasongahAI, a helpful and smart assistant. Be accurate and clear. Use short paragraphs and simple formatting.')
+        + (language && language !== 'Auto' ? ` Always reply in ${String(language).slice(0, 30)} unless the user asks for another language.` : ''),
+      search: !!search,
       signal: ac.signal,
+      onSources: (sources) => send({ type: 'sources', sources }),
       onText: (text) => send({ type: 'text', text }),
     });
     send({ type: 'done' });

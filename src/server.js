@@ -27,6 +27,9 @@ app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
+// PWA assets (manifest, service worker, icons)
+app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: 0 }));
+
 // Frontend + health
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'frontend.html')));
 app.get('/api/health', (req, res) => res.json({ status: 'healthy', uptime: Math.floor(process.uptime()) + 's', timestamp: new Date().toISOString() }));

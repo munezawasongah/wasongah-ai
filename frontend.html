@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>WasongahAI — Your Workspace</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -210,6 +216,42 @@ body{height:100vh;height:100dvh;min-height:0}
 }
 .spinner{width:34px;height:34px;border:3px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:vspin .9s linear infinite}
 @keyframes vspin{to{transform:rotate(360deg)}}
+
+/* ── CHAT EXTRAS ── */
+.msg-bubble code.inline{font-family:var(--mono);font-size:12.5px;background:var(--surface3);padding:1px 5px;border-radius:4px}
+.chat-top{display:flex;align-items:center;gap:8px;padding:8px 1rem;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;overflow-x:auto}
+.chat-top-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:500;color:var(--muted2);cursor:pointer;font-family:var(--sans);white-space:nowrap}
+.chat-top-btn:hover{border-color:var(--cyan);color:var(--text)}
+.chat-top-btn.on{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan)}
+#chatLang{width:auto;padding:5px 8px;font-size:12px;border-radius:20px;resize:none}
+.hist-panel{position:absolute;top:44px;left:1rem;z-index:20;width:min(320px,calc(100% - 2rem));max-height:60%;overflow-y:auto;background:var(--surface);border:1px solid var(--border2);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.hist-item{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border)}
+.hist-item:hover,.hist-item.active{background:var(--surface2)}
+.hist-title{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-date{font-size:11px;color:var(--muted)}
+.hist-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:4px}
+.hist-del:hover{color:#fca5a5}
+.hist-clear{width:100%;background:none;border:none;color:var(--muted2);font-size:12px;padding:10px;cursor:pointer;font-family:var(--sans)}
+.hist-clear:hover{color:#fca5a5}
+.attach-row{padding:6px 1.25rem 0;background:var(--surface);flex-shrink:0}
+.attach-chip{display:inline-flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;font-size:12px;color:var(--muted2);max-width:100%}
+.attach-chip button{background:none;border:none;color:var(--muted);cursor:pointer}
+.chat-attach{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-sm);width:40px;height:40px;font-size:16px;cursor:pointer;flex-shrink:0;color:var(--text)}
+.chat-attach:hover{border-color:var(--cyan)}
+textarea.chat-text{resize:none;min-height:40px;max-height:140px;line-height:1.4;width:auto}
+.msg-file{margin-top:6px;font-size:11.5px;opacity:.75}
+.msg-actions{display:flex;gap:6px;margin-top:2px}
+.msg-actions button{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:2px 6px;border-radius:6px;font-family:var(--sans)}
+.msg-actions button:hover{color:var(--cyan);background:var(--surface2)}
+.src-list{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:11px;color:var(--muted)}
+.src-list a{color:var(--cyan);text-decoration:none;background:var(--cyan-dim);border-radius:10px;padding:2px 8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.starters{display:flex;flex-wrap:wrap;gap:8px}
+.starters button{background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:6px 12px;font-size:12.5px;color:var(--muted2);cursor:pointer;font-family:var(--sans)}
+.starters button:hover{border-color:var(--cyan);color:var(--text)}
+.vid-item{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--r-sm);cursor:pointer;font-size:12.5px;color:var(--muted2);margin-top:6px}
+.vid-item:hover{border-color:var(--cyan);color:var(--text)}
+.vid-item span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:768px){.msg{max-width:92%}}
 </style>
 </head>
 <body>
@@ -339,81 +381,204 @@ function showResult(el,text){
   window._lastOutput=text;
 }
 function formatText(t){
-  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/```[\w]*\n([\s\S]*?)```/g,'<div class="code-block">$1</div>').replace(/\n/g,'<br>');
+  const e=x=>x.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(t).split(/```[\w+#.-]*\n?/).map((p,i)=>i%2
+    ? `<div class="code-block">${e(p.replace(/\n$/,''))}</div>`
+    : e(p).replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>').replace(/`([^`\n]+)`/g,'<code class="inline">$1</code>').replace(/\n/g,'<br>')
+  ).join('');
 }
 function copyOutput(){if(window._lastOutput)navigator.clipboard.writeText(window._lastOutput).then(()=>alert('Copied!'))}
 function selectChip(el,gid){document.querySelectorAll(`#${gid} .opt-chip`).forEach(c=>c.classList.remove('active'));el.classList.add('active')}
 
 // ── CHAT ─────────────────────────────────────
+const CHAT_KEY = 'wasongah_chats_v1', PREF_KEY = 'wasongah_chat_prefs_v1';
+const LANGS = ['Auto','English','Kiswahili','Français','Español','Português','Deutsch','العربية','中文','हिन्दी'];
+let chatsLoaded = false;
+let chats = [], currentChat = null, chatAttach = null, chatAbort = null, chatBusy = false;
+let chatPrefs = {web:false, lang:'Auto'};
+
+function loadChats(){
+  try{chats=JSON.parse(localStorage.getItem(CHAT_KEY)||'[]')}catch{chats=[]}
+  try{chatPrefs=Object.assign({web:false,lang:'Auto'},JSON.parse(localStorage.getItem(PREF_KEY)||'{}'))}catch{}
+}
+function saveChats(){
+  chats.sort((a,b)=>b.updated-a.updated);
+  chats=chats.slice(0,50);
+  try{localStorage.setItem(CHAT_KEY,JSON.stringify(chats,(k,v)=>k.startsWith('_')?undefined:v))}catch{}
+}
+function savePrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify(chatPrefs))}catch{}}
+const $ = id => document.getElementById(id);
+
 function renderChat(container) {
-  chatHistory = [];
+  if(!chatsLoaded){loadChats();chatsLoaded=true}
+  currentChat = currentChat && chats.includes(currentChat) ? currentChat : (chats[0]||null);
   container.innerHTML = `
-    <div class="chat-wrapper">
-      <div class="chat-msgs" id="chatMsgs">
-        <div class="msg ai"><div class="msg-name">WasongahAI</div>
-          <div class="msg-bubble">Hello! I'm WasongahAI. Ask me anything — questions, analysis, writing, code, math, and more.</div>
-        </div>
+    <div class="chat-wrapper" style="position:relative">
+      <div class="chat-top">
+        <button class="chat-top-btn" onclick="toggleHistory()">☰ History</button>
+        <button class="chat-top-btn" onclick="newChat()">＋ New chat</button>
+        <span style="flex:1"></span>
+        <button class="chat-top-btn" id="webBtn" onclick="toggleWeb()" title="Use Google Search for up-to-date answers">🌐 Web</button>
+        <select id="chatLang" onchange="setLang(this.value)" title="Reply language">${LANGS.map(l=>`<option ${l===chatPrefs.lang?'selected':''}>${l}</option>`).join('')}</select>
       </div>
+      <div class="hist-panel" id="histPanel" style="display:none"></div>
+      <div class="chat-msgs" id="chatMsgs"></div>
+      <div class="attach-row" id="attachRow" style="display:none"></div>
       <div class="chat-input-bar">
-        <input class="chat-text" id="chatIn" placeholder="Ask anything..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}" />
-        <button class="chat-send" id="chatSendBtn" onclick="sendChat()">↑</button>
+        <input type="file" id="chatFile" style="display:none" accept="image/*,application/pdf,text/plain,.md,.csv,.json,.txt" onchange="pickChatFile(event)">
+        <button class="chat-attach" onclick="$('chatFile').click()" title="Attach an image, PDF or text file">📎</button>
+        <textarea class="chat-text" id="chatIn" rows="1" placeholder="Ask anything..." oninput="autosizeChat()" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatAction()}"></textarea>
+        <button class="chat-send" id="chatSendBtn" onclick="chatAction()">↑</button>
       </div>
     </div>`;
+  updateWebBtn(); renderMessages(); updateSendBtn();
 }
 
-async function sendChat() {
-  const input = document.getElementById('chatIn');
-  const msgs = document.getElementById('chatMsgs');
-  const btn = document.getElementById('chatSendBtn');
-  const text = input.value.trim();
-  if (!text) return;
+function autosizeChat(){const t=$('chatIn');if(!t)return;t.style.height='auto';t.style.height=Math.min(t.scrollHeight,140)+'px'}
+function updateWebBtn(){const b=$('webBtn');if(b)b.classList.toggle('on',chatPrefs.web)}
+function toggleWeb(){chatPrefs.web=!chatPrefs.web;savePrefs();updateWebBtn()}
+function setLang(v){chatPrefs.lang=v;savePrefs()}
+function updateSendBtn(){const b=$('chatSendBtn');if(!b)return;b.textContent=chatBusy?'■':'↑';b.title=chatBusy?'Stop':'Send'}
+function chatAction(){chatBusy?(chatAbort&&chatAbort.abort()):sendChat(false)}
 
-  msgs.innerHTML += `<div class="msg user"><div class="msg-name">You</div><div class="msg-bubble">${text.replace(/</g,'&lt;')}</div></div>`;
-  input.value = ''; btn.disabled = true;
+function newChat(){
+  if(chatBusy)return;
+  currentChat=null;chatAttach=null;renderAttach();
+  $('histPanel').style.display='none';renderMessages();$('chatIn')?.focus();
+}
+function toggleHistory(){
+  const p=$('histPanel');if(!p)return;
+  if(p.style.display!=='none'){p.style.display='none';return}
+  p.innerHTML = chats.length
+    ? chats.map(c=>`<div class="hist-item ${c===currentChat?'active':''}" onclick="openChat('${c.id}')"><div style="flex:1;min-width:0"><div class="hist-title">${esc(c.title||'New chat')}</div><div class="hist-date">${timeAgo(c.updated)}</div></div><button class="hist-del" onclick="event.stopPropagation();deleteChat('${c.id}')" title="Delete">✕</button></div>`).join('')+`<button class="hist-clear" onclick="clearChats()">Clear all chats</button>`
+    : `<div style="padding:14px;color:var(--muted);font-size:12.5px">No saved chats yet.</div>`;
+  p.style.display='block';
+}
+function openChat(id){if(chatBusy)return;const c=chats.find(x=>x.id===id);if(!c)return;currentChat=c;$('histPanel').style.display='none';renderMessages()}
+function deleteChat(id){if(chatBusy)return;chats=chats.filter(c=>c.id!==id);if(currentChat&&currentChat.id===id)currentChat=null;saveChats();$('histPanel').style.display='none';renderMessages();toggleHistory()}
+function clearChats(){if(chatBusy||!confirm('Delete all saved chats on this device?'))return;chats=[];currentChat=null;saveChats();$('histPanel').style.display='none';renderMessages()}
+function timeAgo(t){const m=Math.floor((Date.now()-t)/60000);if(m<1)return'just now';if(m<60)return m+' min ago';const h=Math.floor(m/60);if(h<24)return h+' h ago';return Math.floor(h/24)+' d ago'}
 
-  const tid = 'typing_'+Date.now();
-  msgs.innerHTML += `<div class="msg ai" id="${tid}"><div class="msg-name">WasongahAI</div><div class="msg-bubble" id="${tid}_t" style="color:var(--muted2)">▋</div></div>`;
-  msgs.scrollTop = msgs.scrollHeight;
+// ── attachments ──
+function pickChatFile(e){
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  if(f.size>6*1024*1024){alert('File is too large (max 6 MB).');return}
+  const isText=/^text\//.test(f.type)||/\.(txt|md|csv|json)$/i.test(f.name);
+  const r=new FileReader();
+  r.onload=()=>{
+    if(isText){chatAttach={name:f.name,text:String(r.result).slice(0,200000)}}
+    else{chatAttach={name:f.name,mime:f.type||'application/octet-stream',data:String(r.result).split(',')[1]}}
+    renderAttach();
+  };
+  isText?r.readAsText(f):r.readAsDataURL(f);
+}
+function renderAttach(){
+  const row=$('attachRow');if(!row)return;
+  if(!chatAttach){row.style.display='none';row.innerHTML='';return}
+  row.style.display='flex';
+  row.innerHTML=`<span class="attach-chip">📎 ${esc(chatAttach.name)} <button onclick="chatAttach=null;renderAttach()" title="Remove">✕</button></span>`;
+}
 
-  chatHistory.push({role:'user',content:text});
-  let fullReply = '', streamErr = '';
+// ── message rendering ──
+function msgHtml(m,i,last){
+  if(m.role==='user'){
+    const files=(m.files||[]).map(n=>`<div class="msg-file">📎 ${esc(n)}</div>`).join('');
+    return `<div class="msg user"><div class="msg-name">You</div><div class="msg-bubble">${esc(m.text)}${files}</div></div>`;
+  }
+  const src=(m.sources||[]).map(s=>{let h='';try{h=new URL(s.uri).hostname.replace(/^www\./,'')}catch{}return `<a href="${esc(s.uri)}" target="_blank" rel="noopener noreferrer">${esc(s.title||h)}</a>`}).join('');
+  return `<div class="msg ai"><div class="msg-name">WasongahAI</div><div class="msg-bubble">${formatText(m.text)}</div>`
+    +(src?`<div class="src-list"><span>Sources</span>${src}</div>`:'')
+    +`<div class="msg-actions"><button onclick="copyMsg(${i},this)">Copy</button>${last?`<button onclick="sendChat(true)">Regenerate</button>`:''}</div></div>`;
+}
+function renderMessages(){
+  const box=$('chatMsgs');if(!box)return;
+  const ms=currentChat?currentChat.messages:[];
+  if(!ms.length){
+    const starters=['Explain something simply','Help me write a message','Plan my day','Summarize a file I attach'];
+    box.innerHTML=`<div class="msg ai"><div class="msg-name">WasongahAI</div><div class="msg-bubble">Hello! Ask me anything — questions, writing, code, math, or attach an image or PDF.</div></div>
+      <div class="starters">${starters.map(s=>`<button onclick="$('chatIn').value=this.textContent;$('chatIn').focus();autosizeChat()">${s}</button>`).join('')}</div>`;
+    return;
+  }
+  box.innerHTML=ms.map((m,i)=>msgHtml(m,i,i===ms.length-1&&m.role==='assistant')).join('');
+  box.scrollTop=box.scrollHeight;
+}
+function copyMsg(i,btn){const m=currentChat?.messages[i];if(!m)return;navigator.clipboard.writeText(m.text).then(()=>{btn.textContent='Copied';setTimeout(()=>btn.textContent='Copy',1200)})}
 
+// ── API payload ──
+function apiMessages(chat){
+  // keep total inline data under the request limit: drop oldest attachments first
+  let total=0;for(let i=chat.messages.length-1;i>=0;i--){const m=chat.messages[i];if(m._data){const sz=m._data.reduce((a,d)=>a+d.data.length,0);total+=sz;if(total>11e6)delete m._data}}
+  return chat.messages.map(m=>{
+    let text=m.text+(m._extra?`\n\n${m._extra}`:'');
+    if(m.role==='user'&&m.files?.length&&!m._data&&!m._extra)text+=`\n[Attached file: ${m.files.join(', ')}]`;
+    if(m._data?.length)return{role:m.role,content:[...m._data.map(d=>({inlineData:{mimeType:d.mimeType,data:d.data}})),{text}]};
+    return{role:m.role,content:text};
+  });
+}
+
+async function sendChat(regen) {
+  if (chatBusy) return;
+  const input=$('chatIn');
+  if(!regen){
+    const text=input.value.trim();
+    if(!text&&!chatAttach)return;
+    if(!currentChat){currentChat={id:'c'+Date.now(),title:'',updated:Date.now(),messages:[]};chats.unshift(currentChat)}
+    const m={role:'user',text:text||'Please look at the attached file.'};
+    if(chatAttach){
+      m.files=[chatAttach.name];
+      if(chatAttach.text!==undefined)m._extra=`--- ${chatAttach.name} ---\n${chatAttach.text}`;
+      else m._data=[{mimeType:chatAttach.mime,data:chatAttach.data}];
+    }
+    currentChat.messages.push(m);
+    if(!currentChat.title)currentChat.title=(text||chatAttach?.name||'New chat').slice(0,40);
+    input.value='';autosizeChat();chatAttach=null;renderAttach();
+  } else {
+    if(!currentChat)return;
+    if(currentChat.messages.at(-1)?.role==='assistant')currentChat.messages.pop();
+  }
+  const chat=currentChat;
+  chat.updated=Date.now();saveChats();
+  renderMessages();
+  $('histPanel').style.display='none';
+
+  let box=$('chatMsgs');
+  const live=document.createElement('div');live.className='msg ai';
+  live.innerHTML=`<div class="msg-name">WasongahAI</div><div class="msg-bubble" style="color:var(--muted2)">▋</div>`;
+  box.appendChild(live);box.scrollTop=box.scrollHeight;
+  const bubble=live.querySelector('.msg-bubble');
+
+  chatBusy=true;chatAbort=new AbortController();updateSendBtn();
+  let full='',sources=[],err='';
   try {
-    const res = await fetch(`${BACKEND}/api/stream`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({messages:chatHistory})
+    const res=await fetch(`${BACKEND}/api/stream`,{
+      method:'POST',headers:{'Content-Type':'application/json'},signal:chatAbort.signal,
+      body:JSON.stringify({messages:apiMessages(chat),search:chatPrefs.web,language:chatPrefs.lang})
     });
-
-    if (!res.ok) { let m='Request failed'; try{m=(await res.json()).error||m}catch{} throw new Error(m); }
-
-    const reader = res.body.getReader(); const decoder = new TextDecoder();
-    let buf = '';
-    while (true) {
-      const {done,value} = await reader.read(); if(done)break;
-      buf += decoder.decode(value,{stream:true});
-      const lines = buf.split('\n'); buf = lines.pop();
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const ev = JSON.parse(line.slice(6));
-            if (ev.type==='text') { fullReply+=ev.text; document.getElementById(`${tid}_t`).innerHTML=formatText(fullReply)+'▋'; msgs.scrollTop=msgs.scrollHeight; }
-            if (ev.type==='error') { streamErr = ev.message; continue; }
-            if (ev.type==='done') {
-              document.getElementById(`${tid}_t`).innerHTML=formatText(fullReply);
-              chatHistory.push({role:'assistant',content:fullReply});
-            }
-          } catch {}
-        }
+    if(!res.ok){let m='Request failed';try{m=(await res.json()).error||m}catch{}throw new Error(m)}
+    const reader=res.body.getReader();const dec=new TextDecoder();let buf='';
+    while(true){
+      const {done,value}=await reader.read();if(done)break;
+      buf+=dec.decode(value,{stream:true});
+      const lines=buf.split('\n');buf=lines.pop();
+      for(const line of lines){
+        if(!line.startsWith('data: '))continue;
+        let ev;try{ev=JSON.parse(line.slice(6))}catch{continue}
+        if(ev.type==='text'){full+=ev.text;bubble.style.color='';bubble.innerHTML=formatText(full)+'▋';const b=$('chatMsgs');if(b&&b.contains(live)&&b.scrollHeight-b.scrollTop-b.clientHeight<160)b.scrollTop=b.scrollHeight}
+        else if(ev.type==='sources')sources=ev.sources||[];
+        else if(ev.type==='error')err=ev.message;
       }
     }
-  if (streamErr) { const el=document.getElementById(tid); if(el)el.querySelector('.msg-bubble').textContent='⚠️ '+streamErr; }
-  else if (!fullReply) { const el=document.getElementById(tid); if(el)el.querySelector('.msg-bubble').textContent='⚠️ No response received. Check the server logs.'; }
-  } catch(err) {
-    const el=document.getElementById(tid);
-    if(el)el.querySelector('.msg-bubble').textContent='⚠️ '+err.message;
+  } catch(e){ if(e.name!=='AbortError')err=e.message; }
+
+  chatBusy=false;chatAbort=null;updateSendBtn();
+  if(full){
+    chat.messages.push({role:'assistant',text:full,sources});
+    chat.updated=Date.now();saveChats();
+    if(currentChat===chat&&$('chatMsgs'))renderMessages();
+    if(err&&currentChat===chat&&$('chatMsgs'))$('chatMsgs').insertAdjacentHTML('beforeend',`<div class="msg ai"><div class="msg-bubble" style="color:#fca5a5">⚠️ ${esc(err)}</div></div>`);
+  } else if(live.isConnected){
+    live.innerHTML=`<div class="msg-name">WasongahAI</div><div class="msg-bubble" style="color:#fca5a5">⚠️ ${esc(err||'Stopped.')}</div><div class="msg-actions"><button onclick="sendChat(true)">Try again</button></div>`;
   }
-  btn.disabled=false; msgs.scrollTop=msgs.scrollHeight;
 }
 
 // ── WRITER ───────────────────────────────────
@@ -518,7 +683,9 @@ function renderVideo(c) {
     <div><label>Format</label>${chips('vR',['16:9','9:16'])}</div>
     <div><label>Length</label>${chips('vD',['4s','6s','8s'],2)}</div>
     <div><label>Quality</label>${chips('vQ',['Fast','Lite','Standard'])}</div>
-    <button class="run-btn" id="vidBtn" onclick="runVideo()">Generate Video →</button>`;
+    <button class="run-btn" id="vidBtn" onclick="runVideo()">Generate Video →</button>
+    <div id="vidGallery"></div>`;
+  renderGallery();
   output.innerHTML=`<div class="out-empty"><div style="font-size:2.5rem;opacity:0.3">🎬</div><p>Your video appears here.<br><span style="font-size:12px;color:var(--muted)">Generation takes 1–3 minutes.</span></p></div>`;
 }
 
@@ -546,16 +713,28 @@ async function runVideo() {
           _videoTimer=setTimeout(poll,8000); return;
         }
         if(s.error) throw new Error(s.error);
-        const o=document.getElementById('outputContent'); if(!o) return;
-        o.innerHTML=`<div class="out-result">
-          <video src="${s.url}" controls autoplay loop playsinline style="width:100%;max-height:70vh;border-radius:10px;background:#000"></video>
-          <div style="margin-top:12px"><a class="copy-btn" href="${s.url}&download=1" style="text-decoration:none;display:inline-block">Download MP4</a></div></div>`;
+        saveVideo({url:s.url,prompt:prompt.slice(0,80),ts:Date.now()});
+        showVideo(s.url); renderGallery();
         const b=document.getElementById('vidBtn'); if(b){b.disabled=false;b.textContent='Generate Video →';}
       } catch(e) { vidFail(e); }
     };
     poll();
   } catch(e) { vidFail(e); }
 }
+
+function getVideos(){try{return JSON.parse(localStorage.getItem('wasongah_videos_v1')||'[]').filter(v=>Date.now()-v.ts<47*3600*1000)}catch{return[]}}
+function saveVideo(v){try{localStorage.setItem('wasongah_videos_v1',JSON.stringify([v,...getVideos()].slice(0,8)))}catch{}}
+function renderGallery(){
+  const el=document.getElementById('vidGallery');if(!el)return;
+  const vs=getVideos();
+  el.innerHTML=vs.length?`<label style="margin-top:6px">Recent videos <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)">(kept 2 days)</span></label>`+vs.map((v,i)=>`<div class="vid-item" onclick="playVideo(${i})">▶ <span>${esc(v.prompt)}</span><small>${timeAgo(v.ts)}</small></div>`).join(''):'';
+}
+function showVideo(url){
+  const o=document.getElementById('outputContent');if(!o)return;
+  o.innerHTML=`<div class="out-result"><video src="${url}" controls autoplay loop playsinline style="width:100%;max-height:70vh;border-radius:10px;background:#000"></video>
+    <div style="margin-top:12px"><a class="copy-btn" href="${url}&download=1" style="text-decoration:none;display:inline-block">Download MP4</a></div></div>`;
+}
+function playVideo(i){const v=getVideos()[i];if(v)showVideo(v.url)}
 function vidFail(e){
   const o=document.getElementById('outputContent');
   if(o) o.innerHTML=`<div class="out-result" style="color:#fca5a5">⚠️ ${esc(e.message)}</div>`;
@@ -592,6 +771,7 @@ async function runTool(tool, body, requiredField) {
 
 // ── INIT ─────────────────────────────────────
 loadTool('chat');
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('/sw.js').catch(()=>{});
 </script>
 </body>
 </html>
